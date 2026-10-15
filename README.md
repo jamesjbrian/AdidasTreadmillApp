@@ -2,7 +2,6 @@
 
 A free, open-source web app that controls the **adidas T-24c treadmill** over Bluetooth. It gives you structured speed and incline workouts, a Couch to 5K plan, GPX route runs and Strava upload, all from a single HTML page you can open in Chrome.
 
-**[▶ Open the app](https://YOUR-USERNAME.github.io/YOUR-REPO/)**
 
 > I built this because the official adidas app stopped offering custom workouts that control speed and incline. It isn't made, endorsed or supported by adidas.
 
@@ -75,6 +74,8 @@ Every workout is recorded once a second (speed, incline, distance and climb) and
 
 ## Getting started
 
+The easiest way to get up and running (pun intended) is to download the html file to your phone, tablet or PC and open it in Chrome. Allow the bluetooth permissions and simply connect to the treadmill. Opening the file from Files on an Android tablet directly in Chrome seems to work without any issues.
+
 ### Use the hosted version
 1. Open the app link at the top of this page in Chrome.
 2. Close the adidas app, or turn off Bluetooth on the device running it. The treadmill accepts only one connection at a time.
@@ -86,20 +87,6 @@ On Android, Bluetooth and Location both need to be switched on before Chrome can
 
 You can try everything without a treadmill using the **Simulator** button.
 
-### Run it on your own computer
-```bash
-git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
-cd YOUR-REPO
-python -m http.server 8000
-```
-Then open `http://localhost:8000/` in Chrome or Edge.
-
-On Linux, also enable `chrome://flags/#enable-experimental-web-platform-features`.
-
-### Host your own copy
-Fork this repository, then go to **Settings → Pages**, choose **Deploy from a branch** and select `main` / root. Your copy will be live at `https://YOUR-USERNAME.github.io/YOUR-REPO/`.
-
----
 
 ## Connecting Strava (optional)
 
