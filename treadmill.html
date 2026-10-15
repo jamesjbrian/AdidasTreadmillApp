@@ -1,0 +1,1188 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>T-24c Workouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-column console app — header with connection chip, three views (Workouts / Builder / Run); Run view mirrors a treadmill console with big tabular digits */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#e4e9ef; --fg:#141a21; --muted:#5a6673; --line:#cfd6de;
+  --speed:#1d5fd1; --speed-fill:rgba(29,95,209,.42); --incline:#c4690f; --veil:rgba(238,241,244,.62); --terrain:#4f7a52; --terrain-fill:rgba(79,122,82,.30);
+  --ok:#1b7f4b; --warn:#a86b10; --bad:#c2372e; --on-accent:#ffffff;
+  --font-display:'Barlow Condensed','Arial Narrow','Roboto Condensed',sans-serif;
+  --font-body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1217; --surface:#161b22; --surface-2:#1f262f; --fg:#e7ecf1; --muted:#8f9ba8; --line:#2b333d;
+  --speed:#6a9eff; --speed-fill:rgba(106,158,255,.38); --incline:#f0a24a; --veil:rgba(14,18,23,.6); --terrain:#86b98a; --terrain-fill:rgba(134,185,138,.26);
+  --ok:#43c383; --warn:#e5b24c; --bad:#ff6e61; --on-accent:#0b1220; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#161b22; --surface-2:#1f262f; --fg:#e7ecf1; --muted:#8f9ba8; --line:#2b333d;
+  --speed:#6a9eff; --speed-fill:rgba(106,158,255,.38); --incline:#f0a24a; --veil:rgba(14,18,23,.6); --terrain:#86b98a; --terrain-fill:rgba(134,185,138,.26);
+  --ok:#43c383; --warn:#e5b24c; --bad:#ff6e61; --on-accent:#0b1220; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:12px 10px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:.02em;text-transform:uppercase;margin-right:auto}
+.brand small{display:block;font-family:var(--font-body);font-weight:500;font-size:12px;letter-spacing:.04em;text-transform:none;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.ok{color:var(--ok)} .chip.ok::before{background:var(--ok)}
+.chip.warn{color:var(--warn)} .chip.warn::before{background:var(--warn)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;font-weight:600;min-height:40px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--speed);outline-offset:2px}
+button.primary{background:var(--speed);border-color:var(--speed);color:var(--on-accent)}
+button.danger{color:var(--bad)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+nav.tabs{display:flex;gap:4px;padding-block:12px;}
+nav.tabs button{background:transparent;border:none;border-bottom:3px solid transparent;border-radius:0;font-family:var(--font-display);font-size:19px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:6px 10px}
+nav.tabs button[aria-current="true"]{color:var(--fg);border-bottom-color:var(--speed)}
+.notice{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--r);padding:12px 14px;margin-block:4px 14px;font-size:14px}
+.notice p{margin:0 0 6px} .notice p:last-child{margin:0}
+h2{font-family:var(--font-display);font-weight:600;font-size:26px;text-transform:uppercase;letter-spacing:.03em;margin:8px 0 4px;text-wrap:balance}
+h3{font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.02em;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 16px;max-width:65ch}
+.label{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card canvas{width:100%;height:64px;display:block;background:var(--surface-2);border-radius:6px}
+.card .meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.card p{margin:0;font-size:14px}
+.card .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.tag{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--speed)}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:12px;height:10px;margin-right:6px;vertical-align:-1px;background:var(--speed-fill)}
+.legend span.inc::before{height:3px;vertical-align:3px;background:var(--incline)}
+/* builder */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-height:40px;width:100%;min-width:0}
+textarea{min-height:90px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+.bhead{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+.seglist{display:flex;flex-direction:column;gap:8px}
+.seg{display:grid;grid-template-columns:28px minmax(0,1.6fr) 84px 84px 74px auto;gap:8px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.seg .n{font-family:var(--font-display);font-size:20px;color:var(--muted);align-self:center;font-variant-numeric:tabular-nums}
+.seg .acts{display:flex;gap:4px}
+.seg .acts button{min-width:38px;padding:6px 8px}
+.seg .field span{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+@media (max-width:640px){
+  .seg{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .seg .n{display:none}
+  .seg .f-label{grid-column:1/-1}
+  .seg .acts{grid-column:1/-1;justify-content:flex-end}
+}
+.preview{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-block:12px;display:flex;flex-direction:column;gap:8px}
+.preview canvas{width:100%;height:110px;display:block;background:var(--surface-2);border-radius:6px}
+.totals{display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:14px}
+.totals b{font-family:var(--font-display);font-size:20px;font-weight:600}
+details.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;margin-block:12px}
+details.panel summary{cursor:pointer;font-weight:600}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-block:12px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* run */
+.runhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:8px}
+.runhead h2{margin:0;margin-right:auto}
+.runhead .clock{font-family:var(--font-display);font-size:22px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.runchart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:6px}
+.runchart canvas{width:100%;height:96px;display:block;background:var(--surface-2);border-radius:6px}
+.console{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;margin-top:14px}
+@media (max-width:760px){.console{grid-template-columns:1fr}}
+.now{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.now .seglabel{font-family:var(--font-display);font-size:24px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.big{font-family:var(--font-display);font-weight:700;font-variant-numeric:tabular-nums;line-height:.95}
+.countdown{font-size:clamp(64px,18vw,104px)}
+.targets{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tgt{border-radius:8px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0}
+.tgt .big{font-size:clamp(40px,11vw,58px)}
+.tgt.s .big{color:var(--speed)} .tgt.i .big{color:var(--incline)}
+.tgt .unit{font-size:16px;font-weight:600;margin-left:3px}
+.tgt .sub{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nudge{display:flex;gap:6px;flex-wrap:wrap}
+.nudge button{flex:1 1 30%;min-width:44px;padding:6px 4px;font-variant-numeric:tabular-nums}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.live{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.live .big{font-size:30px}
+.live .na{color:var(--muted)}
+.next{font-size:14px} .next b{font-family:var(--font-display);font-size:19px;font-weight:600}
+.effort{display:flex;align-items:center;gap:10px}
+.effort output{font-family:var(--font-display);font-size:26px;font-weight:600;min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.controls .go{flex:2;min-height:60px;font-family:var(--font-display);font-size:24px;text-transform:uppercase;letter-spacing:.04em}
+.controls .go.stopc{background:var(--bad);border-color:var(--bad);color:var(--on-accent)}
+.controls button{flex:1;min-height:60px}
+.msg{min-height:22px;font-size:14px;color:var(--warn);margin-top:10px}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:var(--veil);z-index:20;backdrop-filter:blur(2px)}
+.overlay .big{font-size:160px;color:var(--speed)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+.empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:var(--r);text-align:center}
+.help ol,.help ul{margin:6px 0 0;padding-left:20px;max-width:68ch} .help li{margin-bottom:4px}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.scaler{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px;max-width:640px}
+.scalehead{display:flex;justify-content:space-between;align-items:baseline}
+.scalehead output{font-family:var(--font-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.scalerow{display:flex;align-items:center;gap:10px}
+.scalerow input{flex:1;min-height:0;padding:0;border:none;background:transparent;accent-color:var(--speed)}
+.scalerow .lim{font-size:12px;color:var(--muted)}
+.scaleex{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.scaleex b{color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chips button{border-radius:999px;min-height:36px;padding:4px 12px;font-size:14px}
+.chips button span{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums;margin-left:2px}
+.chips button[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.chips button[aria-pressed="true"] span{color:var(--bg);opacity:.75}
+.act{margin-top:16px;display:flex;flex-direction:column;gap:12px;border-color:var(--ok)}
+.act .totals{gap:22px}
+.actform{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:10px}
+@media (max-width:480px){.actform{grid-template-columns:1fr}}
+#actDesc{font-family:var(--font-body);font-size:14px;min-height:150px}
+.act .msg a{color:var(--speed);font-weight:600}
+.help code{font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.help a{color:var(--speed)}
+.drop{display:flex;flex-direction:column;gap:4px;align-items:flex-start;border:2px dashed var(--line);border-radius:var(--r);padding:18px;cursor:pointer;background:var(--surface);max-width:760px}
+.drop:hover,.drop.over{border-color:var(--terrain)}
+.drop:focus-within{outline:2px solid var(--speed);outline-offset:2px}
+.drop input{position:absolute;opacity:0;width:1px;height:1px;min-height:0}
+.drop b{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--terrain)}
+.drop span{font-size:14px;color:var(--muted);max-width:60ch}
+.rtdetail{background:var(--surface);border:1px solid var(--terrain);border-radius:var(--r);padding:14px;margin-top:14px;max-width:760px;display:flex;flex-direction:column;gap:6px}
+.rtdetail .preview{margin-block:8px 4px;background:var(--bg)}
+.rtdetail #rtChart{height:170px}
+.legend span.ter::before{background:var(--terrain-fill);border-top:2px solid var(--terrain);height:8px}
+.legend span.incbar::before{background:var(--incline);height:6px;vertical-align:1px}
+.rtnote{font-size:13.5px;color:var(--muted);margin:0;max-width:65ch}
+.card .ex{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--terrain)}
+/* couch to 5k */
+nav.tabs{flex-wrap:wrap}
+.c5prog{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-variant-numeric:tabular-nums;font-weight:600}
+.c5bar{flex:1;height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.c5bar span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.c5list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-width:760px}
+.c5phase{font-family:var(--font-display);font-size:18px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:14px}
+.c5item{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+.c5item input{width:24px;height:24px;min-height:0;accent-color:var(--ok);cursor:pointer;margin:0}
+.c5item .num{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--muted);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
+.c5item label{display:flex;flex-direction:column;cursor:pointer;min-width:0}
+.c5item .t{font-weight:600}
+.c5item .d{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.c5item.done .t{text-decoration:line-through;text-decoration-color:var(--muted);color:var(--muted)}
+.c5item.next{border-color:var(--speed)}
+.c5item .nexttag{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--speed)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">T-24c Workouts<small>Bluetooth speed &amp; incline control</small></div>
+    <span id="chip" class="chip">Not connected</span>
+    <button id="btnConnect" class="primary">Connect treadmill</button>
+    <button id="btnSim" class="ghost" title="Use a pretend treadmill to try things out">Simulator</button>
+    <button id="btnStrava" class="ghost">Strava</button>
+    <button id="btnHelp" class="ghost">Help</button>
+  </header>
+
+  <div id="btNotice" class="notice" hidden></div>
+
+  <section id="help" class="notice help" hidden>
+    <p><b>Getting connected</b></p>
+    <ol>
+      <li>Use Chrome on Android (or Chrome/Edge on a laptop). Safari and Firefox don't support Web Bluetooth.</li>
+      <li>The page must be served over <b>https</b> (for example GitHub Pages or your own site). Phones also need Bluetooth and Location switched on.</li>
+      <li>Close the adidas app first, or turn off Bluetooth on the device running it. The treadmill accepts one connection at a time.</li>
+      <li>Switch the treadmill on, clip in the safety key, tap <b>Connect treadmill</b> and pick it from the list.</li>
+    </ol>
+    <p style="margin-top:8px">The app talks to the treadmill using the standard Bluetooth fitness-machine protocol (FTMS), the same one Kinomap uses. If the treadmill reports data but ignores speed changes, it isn't accepting remote control, and the app will tell you.</p>
+    <p><b>Safety:</b> the treadmill's own Stop button and safety key always work. Keep the key clipped on.</p>
+  </section>
+
+  <section id="stravaPanel" class="notice help" hidden>
+    <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>Strava</b> <span id="stvStatus" class="chip">Not connected</span></p>
+    <p id="stvFileWarn" hidden><b>Open this page through localhost or your https site to connect Strava.</b> Strava can't send you back to a file opened by double-clicking.</p>
+    <ol>
+      <li>Create a free API application at <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>. Any name and website will do. Set <b>Authorization Callback Domain</b> to <code id="stvDomain">localhost</code>.</li>
+      <li>Paste the app's Client ID and Client Secret below. They're kept in this browser only.</li>
+      <li>Press <b>Connect to Strava</b> and approve access. You'll come straight back here.</li>
+    </ol>
+    <div class="igrid">
+      <div class="field"><label class="label" for="stvId">Client ID</label><input id="stvId" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label class="label" for="stvSecret">Client Secret</label><input id="stvSecret" type="password" autocomplete="off"></div>
+    </div>
+    <div class="btnrow"><button id="stvConnect" class="primary">Connect to Strava</button><button id="stvDisconnect" class="ghost danger" hidden>Disconnect</button></div>
+  </section>
+
+  <nav class="tabs" aria-label="Sections">
+    <button data-view="lib" aria-current="true">Workouts</button>
+    <button data-view="build">Builder</button>
+    <button data-view="c25k">Couch to 5K</button>
+    <button data-view="routes">Routes</button>
+    <button data-view="run">Run</button>
+  </nav>
+
+  <!-- LIBRARY -->
+  <section id="view-lib">
+    <h2>Workout library</h2>
+    <p class="lede">Speeds in km/h, incline in %. Bars show speed, the orange line shows incline. Use <b>Effort</b> on the Run screen to scale any workout up or down.</p>
+    <div class="scaler">
+      <div class="scalehead"><label class="label" for="gScale">Preset speed</label><output id="gScaleOut" for="gScale">100%</output></div>
+      <div class="scalerow"><span class="lim">Slower</span><input type="range" id="gScale" min="70" max="130" step="1" value="100"><span class="lim">Faster</span><button id="gReset" class="ghost">Reset</button></div>
+      <div class="scaleex" id="gScaleEx"></div>
+    </div>
+    <div id="chips" class="chips" role="group" aria-label="Filter by focus"></div>
+    <div id="presetGrid" class="grid"></div>
+    <h2 style="margin-top:28px">My workouts</h2>
+    <div id="customGrid" class="grid"></div>
+    <details class="panel">
+      <summary>Back up or move my workouts</summary>
+      <p class="lede" style="margin-top:8px">Workouts are saved in this browser only. Copy the text below to keep a backup, or paste a backup to restore it.</p>
+      <div class="field"><label class="label" for="exportBox">Backup</label><textarea id="exportBox" readonly></textarea></div>
+      <div class="btnrow" style="margin-block:8px 14px"><button id="btnCopy">Copy backup</button></div>
+      <div class="field"><label class="label" for="importBox">Paste a backup</label><textarea id="importBox" placeholder='[{"name":"…","segments":[…]}]'></textarea></div>
+      <div class="btnrow" style="margin-top:8px"><button id="btnImport">Import</button></div>
+    </details>
+  </section>
+
+  <!-- BUILDER -->
+  <section id="view-build" hidden>
+    <h2 id="buildTitle">New workout</h2>
+    <div class="bhead">
+      <div class="field"><label class="label" for="bName">Name</label><input id="bName" maxlength="60" placeholder="Saturday hills"></div>
+      <div class="field"><label class="label" for="bDesc">Notes</label><input id="bDesc" maxlength="140" placeholder="What this session is for"></div>
+    </div>
+    <div class="preview">
+      <canvas id="bChart"></canvas>
+      <div class="legend"><span>Speed</span><span class="inc">Incline</span></div>
+      <div class="totals" id="bTotals"></div>
+    </div>
+    <p class="lede" style="margin:0 0 8px">Duration accepts <b>m:ss</b> (2:30) or plain minutes (5).</p>
+    <div id="segList" class="seglist"></div>
+    <div class="btnrow" style="margin-top:10px"><button id="btnAddSeg">Add segment</button></div>
+    <details class="panel">
+      <summary>Add a block of intervals</summary>
+      <div class="igrid">
+        <div class="field"><label class="label" for="iReps">Repeats</label><input id="iReps" type="number" min="1" max="50" value="6"></div>
+        <div class="field"><label class="label" for="iWd">Work time</label><input id="iWd" value="1:00"></div>
+        <div class="field"><label class="label" for="iWs">Work km/h</label><input id="iWs" type="number" step="0.1" value="13"></div>
+        <div class="field"><label class="label" for="iWi">Work incline %</label><input id="iWi" type="number" step="1" value="1"></div>
+        <div class="field"><label class="label" for="iRd">Recovery time</label><input id="iRd" value="1:30"></div>
+        <div class="field"><label class="label" for="iRs">Recovery km/h</label><input id="iRs" type="number" step="0.1" value="7"></div>
+        <div class="field"><label class="label" for="iRi">Recovery incline %</label><input id="iRi" type="number" step="1" value="1"></div>
+      </div>
+      <button id="btnAddIntervals">Add intervals</button>
+    </details>
+    <div class="btnrow" style="margin-top:16px">
+      <button id="btnSave" class="primary">Save workout</button>
+      <button id="btnSaveRun">Save and run</button>
+      <button id="btnNew" class="ghost">Start a blank workout</button>
+    </div>
+  </section>
+
+  <!-- COUCH TO 5K -->
+  <section id="view-c25k" hidden>
+    <h2>Couch to 5K</h2>
+    <p class="lede">Work down the list at your own pace, with no deadlines. Repeat any session until it feels comfortable before moving on. Every session starts with a 5-minute warm-up walk and ends with a 5-minute cool-down. Runs are set to 7.5 km/h; use <b>Effort</b> on the Run screen to go slower or faster.</p>
+    <div class="c5prog"><div class="c5bar"><span id="c5bar"></span></div><span id="c5count"></span></div>
+    <ol id="c5list" class="c5list"></ol>
+  </section>
+
+  <!-- ROUTES -->
+  <section id="view-routes" hidden>
+    <h2>Routes</h2>
+    <p class="lede">Upload a GPX file and the app turns the course into a workout by distance. It changes only the incline as you cover the ground. Speed is yours: use the app's buttons or the treadmill console.</p>
+    <label class="drop" id="rtDrop" for="rtFile">
+      <input type="file" id="rtFile" accept=".gpx,application/gpx+xml,application/xml,text/xml">
+      <b>Choose a GPX file</b><span>or drop one here. Exports from Strava, Komoot, Garmin or any route planner work, as long as they include elevation.</span>
+    </label>
+    <div class="msg" id="rtMsg" role="status"></div>
+    <div id="rtDetail" class="rtdetail" hidden>
+      <div class="field"><label class="label" for="rtName">Route name</label><input id="rtName" maxlength="80"></div>
+      <div class="preview">
+        <canvas id="rtChart"></canvas>
+        <div class="legend"><span class="ter">Elevation</span><span class="incbar">Treadmill incline</span></div>
+        <div class="totals" id="rtStats"></div>
+      </div>
+      <div class="igrid">
+        <div class="field"><label class="label" for="rtSeg">Incline changes every</label><select id="rtSeg"><option value="100">100 m</option><option value="200">200 m</option><option value="400">400 m</option><option value="800">800 m</option></select></div>
+        <div class="field"><label class="label" for="rtGrad">Gradient effect</label><select id="rtGrad"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100% (true)</option><option value="1.25">125%</option><option value="1.5">150%</option></select></div>
+        <div class="field"><label class="label" for="rtStart">Starting speed km/h</label><input id="rtStart" type="number" step="0.5" min="1" max="18"></div>
+      </div>
+      <p class="rtnote" id="rtNote"></p>
+      <div class="btnrow"><button id="rtLoad" class="primary">Load on Run screen</button><span id="rtDelWrap"><button id="rtDelete" class="ghost danger">Delete route</button></span></div>
+    </div>
+    <h2 style="margin-top:24px">My routes</h2>
+    <div id="rtList" class="grid"></div>
+  </section>
+
+  <!-- RUN -->
+  <section id="view-run" hidden>
+    <div id="runEmpty" class="empty">Pick a workout from <b>Workouts</b> to load it here, or <button id="rFreeEmpty">Start a free run</button></div>
+    <div id="runBody" hidden>
+      <div class="runhead"><h2 id="rName"></h2><span class="clock" id="rClock"></span><button id="rClear" title="Unload this workout and control the treadmill by hand">Clear workout</button></div>
+      <div class="runchart">
+        <canvas id="rChart"></canvas>
+        <div class="legend" id="rLegend"><span>Speed</span><span class="inc">Incline</span></div>
+      </div>
+      <div class="console">
+        <div class="now">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <span class="seglabel" id="rSeg"></span><span class="label" id="rSegNo"></span>
+          </div>
+          <div><div class="label" id="rLeftLabel">Segment time left</div><div class="big countdown" id="rLeft">0:00</div></div>
+          <div class="targets">
+            <div class="tgt s">
+              <span class="label" id="rTsLabel">Target speed</span>
+              <div><span class="big" id="rTs">0.0</span><span class="unit">km/h</span></div>
+              <span class="sub" id="rTp"></span>
+              <div class="nudge"><button data-ns="-1">−1</button><button data-ns="-0.5">−0.5</button><button data-ns="-0.1">−0.1</button><button data-ns="0.1">+0.1</button><button data-ns="0.5">+0.5</button><button data-ns="1">+1</button></div>
+            </div>
+            <div class="tgt i">
+              <span class="label">Target incline</span>
+              <div><span class="big" id="rTi">0</span><span class="unit">%</span></div>
+              <span class="sub" id="rTiSub">Level 0–12</span>
+              <div class="nudge"><button data-ni="-1">−1</button><button data-ni="1">+1</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="side">
+          <div class="box">
+            <div class="label" style="margin-bottom:8px">From the treadmill</div>
+            <div class="live">
+              <div><div class="label">Speed</div><div class="big" id="lS">–</div></div>
+              <div><div class="label">Incline</div><div class="big" id="lI">–</div></div>
+              <div><div class="label">Distance</div><div class="big" id="lD">–</div></div>
+              <div><div class="label">Pace /km</div><div class="big" id="lP">–</div></div>
+            </div>
+          </div>
+          <div class="box next" id="rNext"></div>
+          <div class="box" id="effBox">
+            <div class="label">Effort (scales every speed)</div>
+            <div class="effort" style="margin-top:6px"><button id="effDown" aria-label="Lower effort">−5%</button><output id="effOut">100%</output><button id="effUp" aria-label="Raise effort">+5%</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="rBack" title="Previous segment">◀ Back</button>
+        <button id="rGo" class="go primary">Start</button>
+        <button id="rSkip" title="Next segment">Skip ▶</button>
+      </div>
+      <div class="btnrow" style="margin-top:10px">
+        <span id="endWrap"><button id="rEnd" class="danger">End workout</button></span>
+        <label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" id="soundOn" style="width:auto;min-height:0" checked> Beeps</label>
+      </div>
+      <div class="msg" id="rMsg" role="status"></div>
+    </div>
+    <div id="actBox" class="box act" hidden>
+      <div class="label" id="actHead">Workout recorded</div>
+      <div class="totals" id="actTotals"></div>
+      <div class="actform">
+        <div class="field"><label class="label" for="actName">Activity name</label><input id="actName" maxlength="80"></div>
+        <div class="field"><label class="label" for="actType">Type</label><select id="actType"><option>Run</option><option>Walk</option><option>Hike</option></select></div>
+      </div>
+      <div class="field"><label class="label" for="actDesc">Description</label><textarea id="actDesc"></textarea></div>
+      <div class="btnrow" style="margin-top:10px"><button id="actUpload" class="primary">Upload to Strava</button><button id="actTcx">Download TCX file</button><button id="actDiscard" class="ghost danger">Discard</button></div>
+      <div class="msg" id="actMsg" role="status"></div>
+    </div>
+  </section>
+</div>
+
+<div id="countOverlay" class="overlay" hidden><div class="big" id="countNum">3</div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const fmt = sec => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`; };
+const pace = kmh => kmh > 0.5 ? fmt(3600 / kmh) : '–';
+const parseDur = str => { str = String(str).trim(); if (!str) return 0;
+  if (str.includes(':')) return str.split(':').map(Number).reduce((a, b) => a * 60 + (b || 0), 0);
+  return Math.round(parseFloat(str) * 60) || 0; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+let LIM = { sMin: 1, sMax: 18, sStep: 0.1, iMin: 0, iMax: 12, iStep: 1 };
+const clampS = v => Math.min(LIM.sMax, Math.max(LIM.sMin, Math.round(v / LIM.sStep) * LIM.sStep));
+const clampI = v => Math.min(LIM.iMax, Math.max(LIM.iMin, Math.round(v / LIM.iStep) * LIM.iStep));
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
+
+/* ---------- presets ---------- */
+const seg = (min, s, i, label) => ({ d: Math.round(min * 60), s, i, label });
+function reps(n, work, rest) { const out = []; for (let k = 1; k <= n; k++) { out.push({ ...work, label: `${work.label} ${k}/${n}` }); if (rest) out.push({ ...rest }); } return out; }
+const FOCUS = ['Recovery', 'Endurance', 'Speed', 'Threshold', 'Hills', 'Fartlek', 'Walking'];
+const flow = (pairs, lab) => pairs.map(([m, s, i = 1]) => seg(m, s, i, lab(s, i)));
+const surge = s => s >= 11 ? 'Surge' : 'Float';
+const warm = (m = 8, s = 8) => seg(m, s, 1, 'Warm-up'), cool = (m = 5, s = 6.5) => seg(m, s, 0, 'Cool-down');
+const PRESETS = [
+  /* Recovery */
+  { id: 'p-recjog', tag: 'Recovery', name: 'Recovery Jog', desc: 'Very easy running to loosen up the day after a hard session.',
+    segments: [seg(5, 5.5, 0, 'Walk'), seg(20, 8, 1, 'Easy jog'), seg(5, 5.5, 0, 'Walk')] },
+  { id: 'p-recwalk', tag: 'Recovery', name: 'Recovery Walk', desc: 'Gentle 35-minute walk with a slight gradient. Good for rest days.',
+    segments: [seg(5, 5, 0, 'Easy walk'), seg(25, 5.8, 2, 'Brisk walk'), seg(5, 5, 0, 'Easy walk')] },
+  { id: 'p-shake', tag: 'Recovery', name: 'Shake-out & Strides', desc: 'Easy 15 minutes then six short, relaxed strides.',
+    segments: [seg(15, 8.5, 1, 'Easy run'), ...reps(6, seg(1 / 3, 13, 1, 'Stride'), seg(2 / 3, 7, 1, 'Jog')), cool(3, 6)] },
+  /* Endurance */
+  { id: 'p-easy', tag: 'Endurance', name: 'Easy 30', desc: 'Steady aerobic run at 1% to mimic outdoor effort.',
+    segments: [seg(5, 6.5, 1, 'Warm-up'), seg(20, 9, 1, 'Easy run'), seg(5, 6, 1, 'Cool-down')] },
+  { id: 'p-steady45', tag: 'Endurance', name: 'Steady 45', desc: '35 minutes at a comfortable, conversational pace.',
+    segments: [warm(5, 7), seg(35, 9.5, 1, 'Steady run'), cool()] },
+  { id: 'p-prog', tag: 'Endurance', name: 'Progression 40', desc: 'Start easy and lift the pace every 5 minutes.',
+    segments: [seg(5, 7, 1, 'Warm-up'), seg(5, 9, 1, 'Easy'), seg(5, 9.5, 1, 'Steady'), seg(5, 10, 1, 'Steady'), seg(5, 10.5, 1, 'Moderate'), seg(5, 11, 1, 'Tempo'), seg(5, 11.5, 1, 'Strong'), seg(5, 6.5, 1, 'Cool-down')] },
+  { id: 'p-long60', tag: 'Endurance', name: 'Long Run 60', desc: 'An hour of easy running to build aerobic base.',
+    segments: [warm(5, 7), seg(50, 9.5, 1, 'Long run'), cool()] },
+  { id: 'p-long90', tag: 'Endurance', name: 'Long Run 90', desc: '90 minutes with a slightly faster final 15 minutes.',
+    segments: [warm(5, 7), seg(65, 9.5, 1, 'Long run'), seg(15, 10.3, 1, 'Finish strong'), cool()] },
+  { id: 'p-mpblocks', tag: 'Endurance', name: 'Marathon Pace Blocks', desc: 'Three 10-minute blocks at goal marathon effort.',
+    segments: [warm(10), ...reps(3, seg(10, 10.5, 1, 'Marathon pace'), seg(3, 8, 1, 'Easy')), cool()] },
+  /* Speed */
+  { id: 'p-speed', tag: 'Speed', name: 'Speed Intervals', desc: '8 × 1 minute fast with 90 seconds easy jogging.',
+    segments: [warm(10, 8.5), ...reps(8, seg(1, 14, 1, 'Fast'), seg(1.5, 7, 1, 'Jog')), cool()] },
+  { id: 'p-400s', tag: 'Speed', name: '400m Repeats', desc: '10 × 400 m at about 5K race pace, 90 seconds jog between.',
+    segments: [warm(10, 8.5), ...reps(10, seg(1.75, 13.7, 1, '400m'), seg(1.5, 7, 1, 'Jog')), cool()] },
+  { id: 'p-800s', tag: 'Speed', name: '800m Repeats', desc: '6 × 800 m with 2 minutes jogging recovery.',
+    segments: [warm(10, 8.5), ...reps(6, seg(3.5, 13.7, 1, '800m'), seg(2, 7, 1, 'Jog')), cool()] },
+  { id: 'p-1k', tag: 'Speed', name: '1K Repeats', desc: '5 × 1 km at 10K effort with 2:30 recovery.',
+    segments: [warm(10, 8.5), ...reps(5, seg(4.5, 13.3, 1, '1 km'), seg(2.5, 7, 1, 'Jog')), cool()] },
+  { id: 'p-pyr', tag: 'Speed', name: 'Pyramid', desc: '1-2-3-4-3-2-1 minutes fast, with 1-minute jogs between.',
+    segments: [warm(), ...[1, 2, 3, 4, 3, 2, 1].flatMap(m => [seg(m, 12, 1, `Fast ${m} min`), seg(1, 7, 1, 'Jog')]), cool()] },
+  { id: 'p-ladder', tag: 'Speed', name: 'Sprint Ladder', desc: 'Short reps up and down a 30–90 second ladder, faster as they get shorter.',
+    segments: [warm(10, 8.5), ...[[0.5, 15], [0.75, 14.5], [1, 14], [1.5, 13.5], [1, 14], [0.75, 14.5], [0.5, 15]].flatMap(([m, v]) => [seg(m, v, 1, `${Math.round(m * 60)}s fast`), seg(1.5, 7, 1, 'Jog')]), cool()] },
+  { id: 'p-strides', tag: 'Speed', name: 'Leg Speed Strides', desc: '10 × 20-second fast strides to sharpen turnover.',
+    segments: [warm(10, 8.5), ...reps(10, seg(1 / 3, 15, 1, 'Stride'), seg(1, 7, 1, 'Walk/jog')), seg(5, 8.5, 1, 'Easy run'), cool()] },
+  /* Threshold */
+  { id: 'p-tempo', tag: 'Threshold', name: 'Tempo Blocks', desc: 'Three 8-minute blocks at comfortably hard effort.',
+    segments: [warm(10), ...reps(3, seg(8, 11.5, 1, 'Tempo'), seg(2, 7, 1, 'Recover')), cool()] },
+  { id: 'p-tempo20', tag: 'Threshold', name: '20-Minute Tempo', desc: 'One continuous 20 minutes at threshold pace.',
+    segments: [warm(10), seg(20, 11.5, 1, 'Tempo'), cool(10)] },
+  { id: 'p-cruise', tag: 'Threshold', name: 'Cruise Intervals', desc: '4 × 6 minutes at threshold with 1-minute floats.',
+    segments: [warm(10), ...reps(4, seg(6, 12, 1, 'Cruise'), seg(1, 8, 1, 'Float')), cool()] },
+  { id: 'p-overunder', tag: 'Threshold', name: 'Over-Unders', desc: 'Alternate just above and just below threshold without stopping.',
+    segments: [warm(10), ...reps(3, seg(2, 12.5, 1, 'Over'), seg(3, 11, 1, 'Under')), seg(3, 7.5, 1, 'Recover'), ...reps(3, seg(2, 12.5, 1, 'Over'), seg(3, 11, 1, 'Under')), cool()] },
+  /* Hills */
+  { id: 'p-hills', tag: 'Hills', name: 'Hill Repeats', desc: 'Six 2-minute climbs at 6% with flat recoveries.',
+    segments: [warm(), ...reps(6, seg(2, 8.5, 6, 'Climb'), seg(2, 7, 1, 'Recover')), cool(5, 6)] },
+  { id: 'p-hillsprint', tag: 'Hills', name: 'Short Hill Sprints', desc: '10 × 30 seconds hard up 8%, walk back down.',
+    segments: [warm(10), ...reps(10, seg(0.5, 11, 8, 'Hill sprint'), seg(1.5, 5.5, 1, 'Walk')), cool()] },
+  { id: 'p-longhill', tag: 'Hills', name: 'Long Hill Reps', desc: '4 × 5 minutes at 5% for climbing strength.',
+    segments: [warm(10), ...reps(4, seg(5, 8.5, 5, 'Long climb'), seg(3, 7, 1, 'Recover')), cool()] },
+  { id: 'p-hillpyr', tag: 'Hills', name: 'Hill Pyramid', desc: 'Incline steps up to 8% and back down, flat jogs between.',
+    segments: [warm(), ...[2, 4, 6, 8, 6, 4, 2].flatMap(i => [seg(2, 9, i, `Climb ${i}%`), seg(1, 7, 1, 'Flat jog')]), cool()] },
+  { id: 'p-roll', tag: 'Hills', name: 'Rolling Hills', desc: 'Constant speed while the gradient rolls between 1% and 6%.',
+    segments: [seg(5, 7.5, 1, 'Warm-up'), ...[1, 3, 5, 2, 4, 6, 3, 5, 1, 4].map(i => seg(3, 9.5, i, i >= 4 ? 'Climb' : 'Rolling')), cool()] },
+  { id: 'p-trail', tag: 'Hills', name: 'Mountain Trail', desc: 'Trail-style run: slow down on the steep bits, speed up on the flats.',
+    segments: [warm(5, 7), ...flow([[4, 8.5, 3], [3, 7, 7], [3, 9, 2], [4, 6.5, 10], [2, 9.5, 1], [5, 7.5, 6], [3, 6, 12], [4, 9, 2], [4, 7, 8], [3, 10, 1]], (s, i) => i >= 6 ? 'Steep climb' : i >= 3 ? 'Climb' : 'Flat'), cool()] },
+  /* Fartlek */
+  { id: 'p-fartlek', tag: 'Fartlek', name: 'Classic Fartlek', desc: 'Unstructured-feeling surges of different lengths and speeds.',
+    segments: [warm(), ...flow([[2, 11], [1, 8], [0.5, 14], [1.5, 8.5], [3, 11.5], [1, 8], [1, 13], [2, 8.5], [0.75, 14.5], [1.25, 8], [4, 11], [1, 8.5], [1.5, 12.5], [2, 8.5]], surge), cool()] },
+  { id: 'p-minonoff', tag: 'Fartlek', name: 'Minute On, Minute Off', desc: '12 rounds of one minute quick, one minute steady.',
+    segments: [warm(), ...reps(12, seg(1, 12.5, 1, 'On'), seg(1, 8.5, 1, 'Off')), cool()] },
+  { id: 'p-3030', tag: 'Fartlek', name: '30/30 Surges', desc: 'Three sets of 8 × 30 seconds fast, 30 seconds easy.',
+    segments: [warm(10), ...[1, 2, 3].flatMap(k => [...reps(8, seg(0.5, 14, 1, `Set ${k} fast`), seg(0.5, 8, 1, 'Easy')), seg(3, 7, 1, 'Recover')]), cool()] },
+  { id: 'p-hillfartlek', tag: 'Fartlek', name: 'Hill Fartlek', desc: 'Speed and gradient both change, like running over rough ground.',
+    segments: [warm(), ...flow([[2, 9, 4], [1, 8, 1], [1, 10, 6], [2, 8.5, 1], [0.5, 11, 8], [1.5, 7.5, 1], [3, 9.5, 3], [1, 8, 1], [1.5, 9, 7], [2, 8, 1], [1, 12, 1], [2, 8, 1]], (s, i) => i >= 3 ? 'Climb' : surge(s)), cool()] },
+  /* Walking */
+  { id: 'p-walk', tag: 'Walking', name: 'Walk–Jog Builder', desc: 'Brisk uphill walks with short flat jogs.',
+    segments: [seg(4, 5, 1, 'Warm-up walk'), ...reps(5, seg(3, 5.5, 5, 'Hill walk'), seg(2, 8, 1, 'Jog')), seg(3, 5, 0, 'Cool-down')] },
+  { id: 'p-12330', tag: 'Walking', name: '12-3-30 Walk', desc: '30 minutes walking at 12% incline and about 3 mph.',
+    segments: [seg(3, 4.5, 2, 'Warm-up walk'), seg(30, 4.8, 12, 'Incline walk'), seg(3, 4.5, 0, 'Cool-down')] },
+  { id: 'p-walkint', tag: 'Walking', name: 'Hill Walk Intervals', desc: 'Alternate flat brisk walking with steep 3-minute climbs.',
+    segments: [seg(5, 5, 1, 'Warm-up walk'), ...reps(5, seg(3, 5.5, 9, 'Steep walk'), seg(3, 6.2, 1, 'Brisk walk')), seg(5, 5, 0, 'Cool-down')] },
+  { id: 'p-climb', tag: 'Walking', name: 'Long Climb', desc: 'Power-hike an incline ladder up to 12%, then ease back down.',
+    segments: [seg(5, 5.5, 1, 'Warm-up'), ...[2, 4, 6, 8, 10, 12].map(i => seg(4, 6, i, `Climb ${i}%`)), ...[10, 8, 6, 4, 2].map(i => seg(2, 7, i, `Ease ${i}%`)), seg(5, 5, 0, 'Cool-down')] },
+];
+let focus = store.get('tm.focus', 'All');
+
+let custom = store.get('tm.custom', []);
+const saveCustom = () => { store.set('tm.custom', custom); renderLib(); };
+const totalSec = segs => segs.reduce((a, s) => a + s.d, 0);
+const estKm = (segs, sc = 1) => segs.reduce((a, s) => a + s.s * sc * s.d / 3600, 0);
+const metaLine = (w, sc = 1) => `${fmt(totalSec(w.segments))} · ≈${estKm(w.segments, sc).toFixed(1)} km · max ${clampS(Math.max(...w.segments.map(s => s.s)) * sc).toFixed(1)} km/h · up to ${Math.max(...w.segments.map(s => s.i))}%`;
+let gScale = store.get('tm.gscale', 1);
+const isPreset = w => PRESETS.includes(w);
+const scaledCopy = (w, sc) => ({ ...w, segments: w.segments.map(s => ({ ...s, s: +clampS(s.s * sc).toFixed(1) })) });
+
+/* ---------- profile chart ---------- */
+function drawProfile(cv, segs, opt = {}) {
+  const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h || !segs.length) { if (cv.getContext) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); return; }
+  const dpr = window.devicePixelRatio || 1; cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, w, h);
+  const cs = getComputedStyle(document.documentElement), col = n => cs.getPropertyValue(n).trim();
+  const sc = opt.scale || 1, total = totalSec(segs) || 1;
+  const maxS = Math.max(10, ...segs.map(s => s.s * sc)) * 1.08, maxI = Math.max(LIM.iMax, ...segs.map(s => s.i), 1);
+  const top = 6, H = h - top, X = t => t / total * w;
+  let t = 0; c.fillStyle = col('--speed-fill');
+  segs.forEach(s => { const x0 = X(t), x1 = X(t + s.d), bh = Math.min(s.s * sc, maxS) / maxS * H; c.fillRect(x0, h - bh, Math.max(1, x1 - x0 - (x1 - x0 > 3 ? 1 : 0)), bh); t += s.d; });
+  c.strokeStyle = col('--incline'); c.lineWidth = 2.25; c.lineJoin = 'round'; c.beginPath(); t = 0;
+  segs.forEach((s, k) => { const y = h - 2 - (s.i / maxI) * (H - 4); if (k === 0) c.moveTo(X(t), y); else c.lineTo(X(t), y); c.lineTo(X(t + s.d), y); t += s.d; });
+  c.stroke();
+  if (opt.progress != null) { const px = X(Math.min(opt.progress, total)); c.fillStyle = col('--veil'); c.fillRect(0, 0, px, h); c.fillStyle = col('--fg'); c.fillRect(px - 1, 0, 2, h); }
+}
+
+/* ---------- Bluetooth FTMS ---------- */
+function parseTreadmill(dv) {
+  const r = {}; try {
+    const f = dv.getUint16(0, true); let o = 2;
+    if (!(f & 1)) { r.speed = dv.getUint16(o, true) / 100; o += 2; }
+    if (f & 2) o += 2;
+    if (f & 4) { r.distance = dv.getUint8(o) | dv.getUint8(o + 1) << 8 | dv.getUint8(o + 2) << 16; o += 3; }
+    if (f & 8) { r.incline = dv.getInt16(o, true) / 10; o += 4; }
+    if (f & 16) o += 4;
+    if (f & 32) o += 1;
+    if (f & 64) o += 1;
+    if (f & 128) { r.kcal = dv.getUint16(o, true); o += 5; }
+    if (f & 256) { r.hr = dv.getUint8(o); o += 1; }
+    if (f & 512) o += 1;
+    if (f & 1024) { r.elapsed = dv.getUint16(o, true); o += 2; }
+  } catch (e) {}
+  return r;
+}
+class Treadmill extends EventTarget {
+  constructor() { super(); this.connected = false; this.chain = Promise.resolve(); this.pending = null; this.controlOk = false; this.sim = false; }
+  emit(t, d) { this.dispatchEvent(new CustomEvent(t, { detail: d })); }
+  async connect() {
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [0x1826] }], optionalServices: [0x1826] });
+    this.dev = dev; this.name = dev.name || 'Treadmill';
+    dev.addEventListener('gattserverdisconnected', () => { this.connected = false; this.emit('disconnect'); });
+    const svc = await (await dev.gatt.connect()).getPrimaryService(0x1826);
+    const data = await svc.getCharacteristic(0x2ACD);
+    data.addEventListener('characteristicvaluechanged', e => this.emit('data', parseTreadmill(e.target.value)));
+    await data.startNotifications();
+    try { const st = await svc.getCharacteristic(0x2ADA); st.addEventListener('characteristicvaluechanged', e => this.onStatus(e.target.value)); await st.startNotifications(); } catch (e) {}
+    try { this.cpChar = await svc.getCharacteristic(0x2AD9); this.cpChar.addEventListener('characteristicvaluechanged', e => this.onCp(e.target.value)); await this.cpChar.startNotifications(); } catch (e) { this.cpChar = null; }
+    try { const r = await (await svc.getCharacteristic(0x2AD4)).readValue(); this.speedRange = { min: r.getUint16(0, true) / 100, max: r.getUint16(2, true) / 100, step: r.getUint16(4, true) / 100 }; } catch (e) {}
+    try { const r = await (await svc.getCharacteristic(0x2AD5)).readValue(); this.inclRange = { min: r.getInt16(0, true) / 10, max: r.getInt16(2, true) / 10, step: r.getUint16(4, true) / 10 }; } catch (e) {}
+    this.connected = true;
+    if (this.cpChar) await this.requestControl();
+    return this;
+  }
+  onCp(dv) { if (dv.getUint8(0) === 0x80 && this.pending && this.pending.op === dv.getUint8(1)) { const p = this.pending; this.pending = null; p.res(dv.getUint8(2)); } }
+  onStatus(dv) { const op = dv.getUint8(0); if (op === 0x02 || op === 0x03) this.emit('userstop', { safety: op === 0x03 }); if (op === 0x04) this.emit('userstart'); }
+  cp(bytes) {
+    if (!this.cpChar || !this.connected) return Promise.resolve(-1);
+    const run = async () => {
+      const op = bytes[0];
+      const res = new Promise(res => { this.pending = { op, res }; setTimeout(() => { if (this.pending && this.pending.op === op) { this.pending = null; res(0); } }, 3000); });
+      try { const b = new Uint8Array(bytes); this.cpChar.writeValueWithResponse ? await this.cpChar.writeValueWithResponse(b) : await this.cpChar.writeValue(b); }
+      catch (e) { this.pending = null; return -1; }
+      return res; // 1 ok, 2 unsupported, 3 bad param, 4 failed, 5 not permitted, 0 no reply
+    };
+    const p = this.chain.then(run, run); this.chain = p.catch(() => {}); return p;
+  }
+  async ctl(bytes) { let c = await this.cp(bytes); if (c === 5) { await this.requestControl(); c = await this.cp(bytes); } this.emit('result', { op: bytes[0], code: c }); return c; }
+  async requestControl() { const c = await this.cp([0x00]); this.controlOk = c === 1 || c === 0; this.emit('control', c); return this.controlOk; }
+  setSpeed(k) { const v = Math.round(k * 100); return this.ctl([0x02, v & 255, (v >> 8) & 255]); }
+  setIncline(i) { const v = Math.round(i * 10) & 0xffff; return this.ctl([0x03, v & 255, v >> 8]); }
+  start() { return this.ctl([0x07]); }
+  pause() { return this.ctl([0x08, 0x02]); }
+  stop() { return this.ctl([0x08, 0x01]); }
+  disconnect() { try { this.dev.gatt.disconnect(); } catch (e) {} }
+}
+class SimTreadmill extends EventTarget {
+  constructor() { super(); this.sim = true; this.name = 'Simulator'; this.controlOk = true; this.t = { s: 0, i: 0 }; this.cur = { s: 0, i: 0 }; this.dist = 0; this.running = false;
+    this.speedRange = { min: 1, max: 18, step: 0.1 }; this.inclRange = { min: 0, max: 12, step: 1 }; }
+  emit(t, d) { this.dispatchEvent(new CustomEvent(t, { detail: d })); }
+  async connect() { this.connected = true; this.iv = setInterval(() => this.tick(), 1000); return this; }
+  tick() { const ts = this.running ? this.t.s : 0, ti = this.running ? this.t.i : this.cur.i;
+    const mv = (a, b, st) => Math.abs(b - a) <= st ? b : a + Math.sign(b - a) * st;
+    this.cur.s = +mv(this.cur.s, ts, 0.8).toFixed(2); this.cur.i = +mv(this.cur.i, ti, 0.5).toFixed(1); this.dist += this.cur.s / 3.6;
+    this.emit('data', { speed: this.cur.s, incline: this.cur.i, distance: Math.round(this.dist) }); }
+  async setSpeed(k) { this.t.s = k; return 1; } async setIncline(i) { this.t.i = i; return 1; }
+  async start() { this.running = true; return 1; } async pause() { this.running = false; return 1; }
+  async stop() { this.running = false; this.t = { s: 0, i: 0 }; return 1; } async requestControl() { return true; }
+  disconnect() { clearInterval(this.iv); this.connected = false; this.emit('disconnect'); }
+}
+
+/* ---------- connection UI ---------- */
+let tm = null; const live = { speed: null, incline: null, distance: null };
+function setChip(text, cls) { const c = $('#chip'); c.textContent = text; c.className = 'chip ' + (cls || ''); }
+function showBtNotice(html) { const n = $('#btNotice'); n.innerHTML = html; n.hidden = !html; }
+function wire(dev) {
+  dev.addEventListener('data', e => { Object.assign(live, e.detail); onLive(); });
+  dev.addEventListener('disconnect', () => { setChip('Disconnected', 'warn'); $('#btnConnect').textContent = 'Connect treadmill'; tm = null;
+    if (run && run.state === 'running') { pauseRun(false); setMsg('Treadmill disconnected. The workout is paused; reconnect and press Resume.'); } });
+  dev.addEventListener('userstop', e => { if (run && run.state === 'running') { pauseRun(false); setMsg(e.detail.safety ? 'Safety key pulled. Workout paused.' : 'Stopped on the treadmill. Workout paused.'); } });
+  dev.addEventListener('result', e => { const c = e.detail.code;
+    if (c === 2 || c === 5) setMsg(c === 2 ? 'The treadmill says it does not support that command. Set it by hand on the console.' : 'The treadmill refused remote control. Make sure no other app is connected.'); });
+}
+async function connectReal() {
+  if (!navigator.bluetooth) { showBtNotice('<p><b>Bluetooth isn\'t available in this browser.</b> Open this page in Chrome on Android (served over https). You can still build workouts here, or try the Simulator.</p>'); return; }
+  try {
+    setChip('Connecting…'); const dev = new Treadmill(); wire(dev); await dev.connect(); tm = dev; afterConnect();
+  } catch (e) {
+    setChip('Not connected');
+    if (e && e.name === 'NotFoundError') return; // picker cancelled
+    if (e && e.name === 'SecurityError') showBtNotice('<p><b>Bluetooth is blocked on this page.</b> Host the file over https and open it directly in Chrome (embedded previews can\'t use Bluetooth). See Help.</p>');
+    else showBtNotice(`<p><b>Couldn't connect:</b> ${esc(e && e.message || e)}. Check the treadmill is on and not connected to the adidas app, then try again.</p>`);
+  }
+}
+function afterConnect() {
+  showBtNotice('');
+  if (tm.speedRange && tm.speedRange.max > 0) Object.assign(LIM, { sMin: tm.speedRange.min || 1, sMax: tm.speedRange.max, sStep: tm.speedRange.step || 0.1 });
+  if (tm.inclRange && tm.inclRange.max > 0) Object.assign(LIM, { iMin: tm.inclRange.min, iMax: tm.inclRange.max, iStep: tm.inclRange.step || 1 });
+  setChip(tm.sim ? 'Simulator' : `Connected · ${tm.name}`, tm.controlOk ? 'ok' : 'warn');
+  $('#btnConnect').textContent = 'Disconnect';
+  if (!tm.sim && !tm.cpChar) showBtNotice('<p><b>Connected, read-only.</b> The treadmill shares its data but doesn\'t offer remote control, so set speed and incline on the console while the app times each segment.</p>');
+  else if (!tm.controlOk) showBtNotice('<p><b>Control not granted.</b> Another app may be connected. Close it, then disconnect and reconnect here.</p>');
+  toast(tm.sim ? 'Simulator running' : 'Treadmill connected');
+}
+$('#btnConnect').onclick = () => { if (tm) { tm.disconnect(); tm = null; setChip('Not connected'); $('#btnConnect').textContent = 'Connect treadmill'; } else connectReal(); };
+$('#btnSim').onclick = async () => { if (tm) tm.disconnect(); const d = new SimTreadmill(); wire(d); await d.connect(); tm = d; afterConnect(); };
+$('#btnHelp').onclick = () => { $('#help').hidden = !$('#help').hidden; };
+if (!navigator.bluetooth) showBtNotice('<p><b>No Web Bluetooth here.</b> To control the treadmill, open this page in Chrome on Android over https. Everything else works, and the Simulator lets you try a workout.</p>');
+
+/* ---------- views ---------- */
+function show(view) {
+  ['lib', 'build', 'c25k', 'routes', 'run'].forEach(v => $('#view-' + v).hidden = v !== view);
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view));
+  try { localStorage.setItem('tm.view', view); } catch (e) {}
+  requestAnimationFrame(redrawAll);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => show(b.dataset.view));
+
+/* ---------- library ---------- */
+function card(w, isCustom) {
+  const sc = isCustom ? 1 : gScale;
+  const el = document.createElement('article'); el.className = 'card';
+  el.innerHTML = `${w.tag ? `<span class="tag">${esc(w.tag)}</span>` : ''}<h3>${esc(w.name)}</h3><canvas></canvas>
+    <div class="meta">${metaLine(w, sc)}</div>${w.desc ? `<p>${esc(w.desc)}</p>` : ''}
+    <div class="row"><button class="primary" data-a="run">Load</button><button data-a="edit">${isCustom ? 'Edit' : 'Edit a copy'}</button>${isCustom ? '<span class="delwrap"><button class="ghost danger" data-a="del">Delete</button></span>' : ''}</div>`;
+  el.querySelector('[data-a=run]').onclick = () => loadRun(w);
+  el.querySelector('[data-a=edit]').onclick = () => openBuilder(isCustom ? w : { ...scaledCopy(w, gScale), id: null, name: w.name + ' (my version)', tag: undefined });
+  const del = el.querySelector('[data-a=del]');
+  if (del) del.onclick = () => { const wrap = el.querySelector('.delwrap');
+    wrap.innerHTML = '<span class="confirm">Delete for good? <button class="danger" data-y>Delete</button><button data-n>Keep</button></span>';
+    wrap.querySelector('[data-y]').onclick = () => { custom = custom.filter(c => c.id !== w.id); saveCustom(); toast('Workout deleted'); };
+    wrap.querySelector('[data-n]').onclick = () => renderLib(); };
+  el._draw = () => drawProfile(el.querySelector('canvas'), w.segments, { scale: sc });
+  return el;
+}
+function renderLib() {
+  renderScaler();
+  const pg = $('#presetGrid'), cg = $('#customGrid'); pg.innerHTML = ''; cg.innerHTML = '';
+  const chips = $('#chips'); chips.innerHTML = '';
+  ['All', ...FOCUS].forEach(f => { const b = document.createElement('button'); const n = f === 'All' ? PRESETS.length : PRESETS.filter(p => p.tag === f).length;
+    b.innerHTML = `${f} <span>${n}</span>`; b.setAttribute('aria-pressed', f === focus); b.onclick = () => { focus = f; store.set('tm.focus', f); renderLib(); }; chips.appendChild(b); });
+  PRESETS.filter(w => focus === 'All' || w.tag === focus).forEach(w => pg.appendChild(card(w, false)));
+  if (!custom.length) cg.innerHTML = '<div class="empty">No saved workouts yet. Open <b>Builder</b> to make one, or tap <b>Edit a copy</b> on any preset.</div>';
+  custom.forEach(w => cg.appendChild(card(w, true)));
+  $('#exportBox').value = JSON.stringify(custom.map(({ name, desc, segments }) => ({ name, desc, segments })));
+  requestAnimationFrame(redrawAll);
+}
+$('#btnCopy').onclick = async () => { const t = $('#exportBox'); try { await navigator.clipboard.writeText(t.value); toast('Backup copied'); } catch (e) { t.focus(); t.select(); toast('Selected — copy it from the menu'); } };
+$('#btnImport').onclick = () => {
+  try { const arr = JSON.parse($('#importBox').value); if (!Array.isArray(arr)) throw 0; let n = 0;
+    arr.forEach(w => { if (w && w.name && Array.isArray(w.segments) && w.segments.length) {
+      const segments = w.segments.map(s => ({ d: Math.max(5, +s.d || 60), s: +s.s || 5, i: +s.i || 0, label: String(s.label || 'Segment').slice(0, 40) }));
+      custom.push({ id: uid(), name: String(w.name).slice(0, 60), desc: String(w.desc || '').slice(0, 140), segments }); n++; } });
+    saveCustom(); $('#importBox').value = ''; toast(`Imported ${n} workout${n === 1 ? '' : 's'}`);
+  } catch (e) { toast('That text isn\'t a valid backup'); }
+};
+
+function renderScaler() {
+  const pct = Math.round(gScale * 100), top = w => clampS(Math.max(...w.segments.map(s => s.s)) * gScale).toFixed(1), P = id => PRESETS.find(p => p.id === id);
+  $('#gScale').value = pct; $('#gScaleOut').textContent = pct + '%'; $('#gReset').hidden = pct === 100;
+  $('#gScaleEx').innerHTML = `Speed Intervals peaks at <b>${top(P('p-speed'))} km/h</b> · Easy 30 runs at <b>${top(P('p-easy'))} km/h</b> · Tempo at <b>${top(P('p-tempo'))} km/h</b>`;
+}
+function setGScale(pct, rerender) {
+  gScale = Math.min(1.3, Math.max(0.7, pct / 100)); store.set('tm.gscale', gScale);
+  if (run && run.state === 'ready' && isPreset(run.w)) run.scale = gScale;
+  if (rerender) renderLib(); else renderScaler();
+}
+$('#gScale').addEventListener('input', e => { setGScale(+e.target.value, false); cancelAnimationFrame(setGScale.raf); setGScale.raf = requestAnimationFrame(renderLib); });
+$('#gReset').onclick = () => setGScale(100, true);
+
+/* ---------- builder ---------- */
+let B = null;
+function blank() { return { id: null, name: '', desc: '', segments: [seg(5, 6.5, 1, 'Warm-up'), seg(20, 9, 1, 'Run'), seg(5, 6, 0, 'Cool-down')] }; }
+function openBuilder(w) { B = JSON.parse(JSON.stringify(w || blank())); renderBuilder(); show('build'); }
+function renderBuilder() {
+  $('#buildTitle').textContent = B.id ? 'Edit workout' : 'New workout';
+  $('#bName').value = B.name || ''; $('#bDesc').value = B.desc || '';
+  const list = $('#segList'); list.innerHTML = '';
+  B.segments.forEach((s, k) => {
+    const row = document.createElement('div'); row.className = 'seg';
+    row.innerHTML = `<span class="n">${k + 1}</span>
+      <label class="field f-label"><span>Label</span><input id="sl${k}" value="${esc(s.label)}" maxlength="40"></label>
+      <label class="field"><span>Time</span><input id="sd${k}" value="${fmt(s.d)}" inputmode="numeric"></label>
+      <label class="field"><span>km/h</span><input id="ss${k}" type="number" step="0.1" min="${LIM.sMin}" max="${LIM.sMax}" value="${s.s}"></label>
+      <label class="field"><span>Incline %</span><input id="si${k}" type="number" step="1" min="${LIM.iMin}" max="${LIM.iMax}" value="${s.i}"></label>
+      <div class="acts"><button data-a="up" aria-label="Move up" ${k === 0 ? 'disabled' : ''}>↑</button><button data-a="down" aria-label="Move down" ${k === B.segments.length - 1 ? 'disabled' : ''}>↓</button><button data-a="dup" aria-label="Duplicate">⧉</button><button data-a="del" class="danger" aria-label="Remove" ${B.segments.length < 2 ? 'disabled' : ''}>✕</button></div>`;
+    row.querySelector(`#sl${k}`).oninput = e => { s.label = e.target.value; };
+    row.querySelector(`#sd${k}`).onchange = e => { s.d = Math.max(5, parseDur(e.target.value)); e.target.value = fmt(s.d); updatePreview(); };
+    row.querySelector(`#ss${k}`).oninput = e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { s.s = v; updatePreview(); } };
+    row.querySelector(`#ss${k}`).onchange = e => { s.s = +clampS(parseFloat(e.target.value) || LIM.sMin).toFixed(1); e.target.value = s.s; updatePreview(); };
+    row.querySelector(`#si${k}`).oninput = e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { s.i = v; updatePreview(); } };
+    row.querySelector(`#si${k}`).onchange = e => { s.i = clampI(parseFloat(e.target.value) || 0); e.target.value = s.i; updatePreview(); };
+    row.querySelector('.acts').onclick = e => { const a = e.target.closest('button')?.dataset.a; if (!a) return; const S = B.segments;
+      if (a === 'up') [S[k - 1], S[k]] = [S[k], S[k - 1]]; if (a === 'down') [S[k + 1], S[k]] = [S[k], S[k + 1]];
+      if (a === 'dup') S.splice(k + 1, 0, { ...s }); if (a === 'del') S.splice(k, 1); renderBuilder(); };
+    list.appendChild(row);
+  });
+  updatePreview();
+}
+function updatePreview() {
+  drawProfile($('#bChart'), B.segments);
+  $('#bTotals').innerHTML = `<span><span class="label">Time</span><br><b>${fmt(totalSec(B.segments))}</b></span><span><span class="label">Distance</span><br><b>≈${estKm(B.segments).toFixed(2)} km</b></span><span><span class="label">Segments</span><br><b>${B.segments.length}</b></span><span><span class="label">Climb</span><br><b>≈${Math.round(B.segments.reduce((a, s) => a + s.s * s.d / 3.6 * s.i / 100, 0))} m</b></span>`;
+}
+$('#bName').oninput = e => B.name = e.target.value; $('#bDesc').oninput = e => B.desc = e.target.value;
+$('#btnAddSeg').onclick = () => { const last = B.segments[B.segments.length - 1] || seg(5, 8, 1, ''); B.segments.push({ ...last, label: 'Segment' }); renderBuilder(); };
+$('#btnAddIntervals').onclick = () => {
+  const n = Math.min(50, Math.max(1, parseInt($('#iReps').value) || 1));
+  const w = { d: Math.max(5, parseDur($('#iWd').value)), s: clampS(+$('#iWs').value || 10), i: clampI(+$('#iWi').value || 0), label: 'Work' };
+  const r = { d: Math.max(5, parseDur($('#iRd').value)), s: clampS(+$('#iRs').value || 6), i: clampI(+$('#iRi').value || 0), label: 'Recover' };
+  const cool = B.segments.length && /cool/i.test(B.segments[B.segments.length - 1].label) ? B.segments.pop() : null;
+  B.segments.push(...reps(n, w, r)); if (cool) B.segments.push(cool); renderBuilder(); toast(`Added ${n} intervals`);
+};
+function saveBuilder() {
+  if (!B.name.trim()) { $('#bName').focus(); toast('Give the workout a name first'); return null; }
+  const w = { id: B.id || uid(), name: B.name.trim(), desc: (B.desc || '').trim(), segments: B.segments.map(s => ({ ...s, s: clampS(s.s), i: clampI(s.i), label: s.label || 'Segment' })) };
+  const k = custom.findIndex(c => c.id === w.id); if (k >= 0) custom[k] = w; else custom.push(w);
+  B.id = w.id; saveCustom(); renderBuilder(); toast('Workout saved'); return w;
+}
+$('#btnSave').onclick = saveBuilder;
+$('#btnSaveRun').onclick = () => { const w = saveBuilder(); if (w) loadRun(w); };
+$('#btnNew').onclick = () => openBuilder(blank());
+
+/* ---------- couch to 5k ---------- */
+const C5W = 5.5, C5B = 5.8, C5J = 7.5;
+const c5RunWalk = (n, r, w) => reps(n, seg(r, C5J, 1, 'Run'), seg(w, C5B, 1, 'Walk'));
+const C25K = [
+  ['Walking', 'Brisk walk', '20 minutes brisk walking', [seg(20, C5B, 1, 'Brisk walk')]],
+  ['Walking', 'Longer brisk walk', '30 minutes brisk walking', [seg(30, C5B, 1, 'Brisk walk')]],
+  ['Walking', 'Walk with hills', '30 minutes brisk, with 3 short climbs', [seg(6, C5B, 1, 'Brisk walk'), ...reps(3, seg(3, 5.5, 4, 'Hill walk'), seg(5, C5B, 1, 'Brisk walk'))]],
+  ['Walking', 'First jogs', 'Jog 1 min, walk 2 min, 8 times', c5RunWalk(8, 1, 2)],
+  ['Run / walk', 'Shorter recoveries', 'Jog 1 min, walk 90 sec, 8 times', c5RunWalk(8, 1, 1.5)],
+  ['Run / walk', 'Longer jogs', 'Jog 90 sec, walk 2 min, 6 times', c5RunWalk(6, 1.5, 2)],
+  ['Run / walk', 'Two-minute jogs', 'Jog 2 min, walk 2 min, 6 times', c5RunWalk(6, 2, 2)],
+  ['Run / walk', 'Three-minute jogs', 'Jog 3 min, walk 2 min, 5 times', c5RunWalk(5, 3, 2)],
+  ['Run / walk', 'Four-minute jogs', 'Jog 4 min, walk 2 min, 4 times', c5RunWalk(4, 4, 2)],
+  ['Run / walk', 'Five-minute jogs', 'Jog 5 min, walk 2 min, 4 times', c5RunWalk(4, 5, 2)],
+  ['Run / walk', 'Six-minute jogs', 'Jog 6 min, walk 90 sec, 3 times', c5RunWalk(3, 6, 1.5)],
+  ['Run / walk', 'Eight-minute jogs', 'Jog 8 min, walk 2 min, 3 times', c5RunWalk(3, 8, 2)],
+  ['Run / walk', 'Ten-minute jogs', 'Jog 10 min, walk 2 min, twice', c5RunWalk(2, 10, 2)],
+  ['Run / walk', 'Twelve-minute jogs', 'Jog 12 min, walk 2 min, twice', c5RunWalk(2, 12, 2)],
+  ['Running', 'Fifteen plus eight', 'Jog 15 min, walk 2 min, jog 8 min', [seg(15, C5J, 1, 'Run'), seg(2, C5B, 1, 'Walk'), seg(8, C5J, 1, 'Run')]],
+  ['Running', '20-minute run', 'Jog 20 minutes without stopping', [seg(20, C5J, 1, 'Run')]],
+  ['Running', '25-minute run', 'Jog 25 minutes without stopping', [seg(25, C5J, 1, 'Run')]],
+  ['Running', '30-minute run', 'Jog 30 minutes without stopping', [seg(30, C5J, 1, 'Run')]],
+  ['Running', 'Your first 5K', '5 km continuous (40 min at 7.5 km/h)', [seg(40, C5J, 1, '5K run')]],
+].map(([phase, title, desc, main], k) => ({ id: 'c5-' + (k + 1), planId: 'c5-' + (k + 1), phase, title, desc,
+  name: `Couch to 5K · ${k + 1}. ${title}`, segments: [seg(5, C5W, 1, 'Warm-up walk'), ...main, seg(5, 5.2, 0, 'Cool-down walk')] }));
+let c5done = new Set(store.get('tm.c25k', []));
+function setC5(id, on) { on ? c5done.add(id) : c5done.delete(id); store.set('tm.c25k', [...c5done]); renderC25k(); }
+function renderC25k() {
+  const list = $('#c5list'); list.innerHTML = ''; let phase = '';
+  const nextId = (C25K.find(s => !c5done.has(s.id)) || {}).id;
+  C25K.forEach((s, k) => {
+    if (s.phase !== phase) { phase = s.phase; const h = document.createElement('li'); h.className = 'c5phase'; h.textContent = phase; list.appendChild(h); }
+    const li = document.createElement('li'); const done = c5done.has(s.id);
+    li.className = 'c5item' + (done ? ' done' : '') + (s.id === nextId ? ' next' : '');
+    li.innerHTML = `<input type="checkbox" id="${s.id}-chk" ${done ? 'checked' : ''} aria-label="Mark session ${k + 1} complete">
+      <span class="num">${k + 1}</span>
+      <label for="${s.id}-chk">${s.id === nextId ? '<span class="nexttag">Up next</span>' : ''}<span class="t">${esc(s.title)}</span><span class="d">${esc(s.desc)} · ${fmt(totalSec(s.segments))} total</span></label>
+      <button data-load>Load</button>`;
+    li.querySelector('input').onchange = e => setC5(s.id, e.target.checked);
+    li.querySelector('[data-load]').onclick = () => loadRun(s);
+    list.appendChild(li);
+  });
+  const n = C25K.filter(s => c5done.has(s.id)).length;
+  $('#c5bar').style.width = (n / C25K.length * 100) + '%';
+  $('#c5count').textContent = `${n} of ${C25K.length} done`;
+}
+
+/* ---------- run engine ---------- */
+let run = null, actx = null, wakeLock = null;
+const setMsg = t => $('#rMsg').textContent = t || '';
+function initAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
+function beep(strong) { if (!actx || !$('#soundOn').checked) return; try {
+  const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime, len = strong ? 0.45 : 0.14;
+  o.frequency.value = strong ? 880 : 620; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + len + 0.05); } catch (e) {} }
+async function keepAwake(on) { try { if (on && 'wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); }
+  if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && run && run.state === 'running') keepAwake(true); });
+
+function loadRun(w) {
+  if (run && (run.state === 'running' || run.state === 'paused')) { toast('End the current workout first'); show('run'); return; }
+  const segs = w.segments.map(s => ({ ...s })); let acc = 0;
+  run = { w, segs, ends: segs.map(s => acc += s.d), total: acc, elapsed: 0, state: 'ready', segIdx: 0, scale: isPreset(w) ? gScale : 1, nS: 0, nI: 0, last: performance.now(), sent: {}, cue: null, sawMoving: false, zeroSince: null };
+  $('#runEmpty').hidden = true; $('#runBody').hidden = false; $('#rName').textContent = w.name; setMsg(''); renderRun(); show('run');
+}
+function loadFreeRun() {
+  if (run && ['running', 'paused', 'countdown'].includes(run.state)) { toast('End the current workout first'); return; }
+  const w = { id: 'free', name: 'Free run', manual: true, segments: [{ d: Infinity, s: 4, i: 0, label: 'Free run' }] };
+  run = { w, manual: true, segs: w.segments.map(x => ({ ...x })), ends: [Infinity], total: Infinity, elapsed: 0, state: 'ready', segIdx: 0, scale: 1, nS: 0, nI: 0,
+    last: performance.now(), sent: {}, cue: null, sawMoving: false, zeroSince: null };
+  $('#runEmpty').hidden = true; $('#runBody').hidden = false; $('#rName').textContent = 'Free run';
+  setMsg('Press Start. The belt begins at 4 km/h; use the buttons to set speed and incline, and End workout when you\'re done.'); renderRun(); show('run');
+}
+$('#rClear').onclick = loadFreeRun; $('#rFreeEmpty').onclick = loadFreeRun;
+const segAt = t => { const k = run.ends.findIndex(e => t < e); return k < 0 ? run.segs.length : k; };
+const prog = () => run.route ? (run.rec ? run.rec.dist : 0) + (run.posOff || 0) : run.elapsed;
+const curSpeed = () => run.manualS;
+const target = (k = run.segIdx) => { const s = run.segs[k]; if (run.route) return { s: run.manualS, i: clampI(s.i + (k === run.segIdx ? run.nI : 0)) }; return { s: +clampS(s.s * run.scale + (k === run.segIdx ? run.nS : 0)).toFixed(1), i: clampI(s.i + (k === run.segIdx ? run.nI : 0)) }; };
+async function applyTargets(force) {
+  if (!run || run.state !== 'running' || !tm) return; const t = target();
+  if (force || run.sent.i !== t.i) { run.sent.i = t.i; await tm.setIncline(t.i); }
+  if ((force || !run.route) && (force || run.sent.s !== t.s)) { run.sent.s = t.s; run.spdAt = performance.now(); await tm.setSpeed(t.s); }
+}
+async function startRun() {
+  initAudio(); keepAwake(true);
+  if (!tm) setMsg('No treadmill connected, so this is a timer only. Set speed and incline on the console when each segment changes.');
+  run.state = 'countdown'; renderRun(); const ov = $('#countOverlay'); ov.hidden = false;
+  if (tm && !tm.sim && tm.cpChar && !tm.controlOk) await tm.requestControl();
+  for (let n = 3; n > 0; n--) { $('#countNum').textContent = n; beep(false); await new Promise(r => setTimeout(r, 1000)); if (!run || run.state !== 'countdown') { ov.hidden = true; return; } }
+  ov.hidden = true; beep(true);
+  run.state = 'running'; run.last = performance.now(); run.sawMoving = false; run.zeroSince = null; run.startDist = live.distance;
+  if (tm) { await tm.start(); run.sent = {}; await applyTargets(true); }
+  renderRun();
+}
+async function pauseRun(send = true) { if (!run || run.state !== 'running') return; run.state = 'paused'; if (run.rec) run.rec.lastT = null; if (send && tm) await tm.pause(); renderRun(); }
+async function resumeRun() { if (!run) return; initAudio(); run.state = 'running'; run.last = performance.now(); run.sawMoving = false; run.zeroSince = null; setMsg('');
+  if (tm) { await tm.start(); run.sent = {}; await applyTargets(true); } renderRun(); }
+async function finishRun(early) {
+  if (!run) return; const wasActive = run.state === 'running' || run.state === 'paused'; run.state = 'done'; keepAwake(false);
+  if (tm && wasActive) await tm.stop(); beep(true);
+  if (run.rec && run.rec.samples.length >= 10) saveActivity();
+  if (!early && run.w.planId && !c5done.has(run.w.planId)) { setC5(run.w.planId, true); toast('Ticked off in Couch to 5K'); }
+  const km = (live.distance != null && run.startDist != null) ? (live.distance - run.startDist) / 1000 : null;
+  setMsg(`${early ? 'Workout ended' : 'Workout complete'} · ${fmt(run.elapsed)}${km != null ? ` · ${km.toFixed(2)} km` : ''}. Load another from Workouts.`);
+  renderRun();
+}
+function jump(dir) { if (!run || run.state === 'done') return; const k = Math.min(run.segs.length, Math.max(0, run.segIdx + dir));
+  if (k >= run.segs.length) { finishRun(true); return; } const to = k === 0 ? 0 : run.ends[k - 1];
+  if (run.route) run.posOff = to - (run.rec ? run.rec.dist : 0); else run.elapsed = to; run.segIdx = -1; tick(); }
+
+function tick() {
+  if (!run) return; const now = performance.now();
+  if (run.state === 'running') run.elapsed += (now - run.last) / 1000; run.last = now;
+  if (run.state === 'running' || run.segIdx === -1) {
+    const P = prog(), k = segAt(P);
+    if (k >= run.segs.length) { finishRun(false); return; }
+    if (k !== run.segIdx) { const first = run.segIdx === -1 && P === 0; run.segIdx = k; run.nS = 0; run.nI = 0; run.cue = null; if (run.state === 'running') { if (!first) beep(true); applyTargets(); } }
+    const left = run.ends[k] - P, c = Math.ceil(left);
+    if (run.state === 'running' && !run.route && left <= 3 && left > 0.15 && c !== run.cue && k < run.segs.length - 1) { run.cue = c; beep(false); }
+  }
+  if (run.state === 'running') record();
+  if (run.state === 'running' && tm && live.speed != null) {   // belt stopped on the console → pause the plan
+    if (live.speed > 0.5) { run.sawMoving = true; run.zeroSince = null; if (run.route) { if (Math.abs(live.speed - (run.lsv ?? -1)) > 0.05) { run.lsv = live.speed; run.lst = now; }
+        else if (now - run.lst > 3000 && now - (run.spdAt || 0) > 4000 && Math.abs(live.speed - run.manualS) > 0.25) run.manualS = +live.speed.toFixed(1); } }
+    else if (run.sawMoving) { run.zeroSince = run.zeroSince || now; if (now - run.zeroSince > 4000) { pauseRun(false); setMsg('The belt stopped, so the workout is paused. Press Resume when ready.'); } }
+  }
+  renderRun();
+}
+setInterval(tick, 250);
+
+function renderRun() {
+  if (!run) return; const k = Math.min(run.segIdx < 0 ? 0 : run.segIdx, run.segs.length - 1), s = run.segs[k], t = target(k);
+  const M = !!run.manual, R = !!run.route, P = prog();
+  $('#rClock').textContent = M ? fmt(run.elapsed) : R ? `${fmt(run.elapsed)} · ${(P / 1000).toFixed(2)} / ${(run.total / 1000).toFixed(2)} km` : `${fmt(run.elapsed)} / ${fmt(run.total)}`;
+  $('#rSeg').textContent = s.label; $('#rSegNo').textContent = M ? 'Manual control' : `Segment ${k + 1} of ${run.segs.length}`;
+  $('#rLeftLabel').textContent = M ? 'Time' : R ? 'Distance left in segment' : 'Segment time left';
+  $('#rLeft').textContent = R ? `${run.state === 'done' ? 0 : Math.max(0, Math.ceil(run.ends[k] - P))} m` : fmt(M ? run.elapsed : run.state === 'done' ? 0 : run.ends[k] - run.elapsed);
+  $('#effBox').hidden = M || R;
+  $('#rTsLabel').textContent = R ? 'Your speed' : 'Target speed';
+  $('#rTiSub').textContent = R ? `Route gradient ${s.g >= 0 ? '+' : ''}${s.g.toFixed(1)}%` : `Level ${LIM.iMin}–${LIM.iMax}`;
+  const cl = $('#rClear'); cl.disabled = ['running', 'paused', 'countdown'].includes(run.state); cl.hidden = M && run.state === 'ready';
+  if (R) { const v = curSpeed(); $('#rTs').textContent = v.toFixed(1); $('#rTp').textContent = `${pace(v)} /km · set by you`; }
+  else $('#rTs').textContent = t.s.toFixed(1), $('#rTp').textContent = `${pace(t.s)} /km${run.nS ? ` · adjusted ${run.nS > 0 ? '+' : ''}${run.nS.toFixed(1)}` : ''}`;
+  $('#rTi').textContent = t.i;
+  const nx = run.segs[k + 1];
+  $('#rNext').innerHTML = R ? (nx ? `<div class="label">Next up</div><b>${esc(nx.label)}</b><div>${Math.round(nx.d)} m at ${target(k + 1).i}% incline</div>` : '<div class="label">Next up</div><b>Finish line</b>') : M ? '<div class="label">Free run</div><div>No plan: you set the pace. The workout is still recorded for Strava when you end it.</div>' : nx ? `<div class="label">Next up</div><b>${esc(nx.label)}</b><div>${fmt(nx.d)} at ${target(k + 1).s.toFixed(1)} km/h · ${target(k + 1).i}% incline</div>` : '<div class="label">Next up</div><b>Finish</b>';
+  $('#effOut').textContent = Math.round(run.scale * 100) + '%';
+  const go = $('#rGo'); go.disabled = run.state === 'countdown' || run.state === 'done';
+  go.textContent = { ready: 'Start', countdown: '…', running: 'Pause', paused: 'Resume', done: 'Done' }[run.state];
+  go.classList.toggle('stopc', run.state === 'running');
+  $('#rBack').disabled = $('#rSkip').disabled = M || run.state === 'done' || run.state === 'countdown';
+  const re = $('#rEnd'); if (re) re.disabled = run.state === 'done' || run.state === 'ready';
+  if (M) { const S = run.rec ? run.rec.samples : [], st = Math.max(1, Math.ceil(S.length / 300)), hs = [];
+    for (let j = 0; j < S.length; j += st) hs.push({ d: st, s: S[j].v, i: S[j].i });
+    drawProfile($('#rChart'), hs.length ? hs : [{ d: 1, s: 0, i: 0 }]); }
+  const lg = R ? '<span class="ter">Elevation</span><span class="incbar">Treadmill incline</span>' : '<span>Speed</span><span class="inc">Incline</span>';
+  if ($('#rLegend').innerHTML !== lg) $('#rLegend').innerHTML = lg;
+  else if (R) drawRoute($('#rChart'), run.routeData, run.segs, { progress: P });
+  else drawProfile($('#rChart'), run.segs, { progress: run.elapsed, scale: run.scale });
+}
+function onLive() {
+  $('#lS').textContent = live.speed != null ? live.speed.toFixed(1) : '–';
+  $('#lI').textContent = live.incline != null ? live.incline.toFixed(0) + '%' : '–';
+  $('#lD').textContent = live.distance != null ? (live.distance / 1000).toFixed(2) : '–';
+  $('#lP').textContent = live.speed != null ? pace(live.speed) : '–';
+}
+$('#rGo').onclick = () => { if (!run) return; if (run.state === 'ready') startRun(); else if (run.state === 'running') pauseRun(); else if (run.state === 'paused') resumeRun(); };
+$('#rSkip').onclick = () => jump(1); $('#rBack').onclick = () => { if (!run) return; const into = prog() - (run.segIdx > 0 ? run.ends[run.segIdx - 1] : 0); jump(into < (run.route ? 25 : 5) ? -1 : 0); };
+function restoreEnd() { $('#endWrap').innerHTML = '<button id="rEnd" class="danger">End workout</button>'; bindEnd(); renderRun(); }
+function bindEnd() { $('#rEnd').onclick = () => { const w = $('#endWrap');
+  w.innerHTML = '<span class="confirm">End and stop the belt? <button class="danger" id="endY">End</button><button id="endN">Keep going</button></span>';
+  $('#endY').onclick = () => { finishRun(true); restoreEnd(); }; $('#endN').onclick = restoreEnd; }; }
+bindEnd();
+document.querySelectorAll('[data-ns]').forEach(b => b.onclick = () => { if (!run) return; const d = +b.dataset.ns;
+  if (run.route) { run.manualS = +clampS(curSpeed() + d).toFixed(1); if (tm && run.state === 'running') { run.sent.s = run.manualS; run.spdAt = performance.now(); tm.setSpeed(run.manualS); } renderRun(); return; }
+  if (run.manual) run.segs[0].s = +clampS(run.segs[0].s + d).toFixed(1); else run.nS = +(run.nS + d).toFixed(1); applyTargets(); renderRun(); });
+document.querySelectorAll('[data-ni]').forEach(b => b.onclick = () => { if (!run) return; const d = +b.dataset.ni;
+  if (run.manual) run.segs[0].i = clampI(run.segs[0].i + d); else run.nI += d; applyTargets(); renderRun(); });
+$('#effUp').onclick = () => { if (!run) return; run.scale = Math.min(1.4, +(run.scale + 0.05).toFixed(2)); applyTargets(); renderRun(); };
+$('#effDown').onclick = () => { if (!run) return; run.scale = Math.max(0.6, +(run.scale - 0.05).toFixed(2)); applyTargets(); renderRun(); };
+
+/* ---------- routes ---------- */
+let routes = store.get('tm.routes', null), rtSel = null;
+const saveRoutes = () => { try { localStorage.setItem('tm.routes', JSON.stringify(routes)); } catch (e) { toast('Browser storage is full. Delete a route to save more.'); } };
+function exampleRoute() {
+  const step = 10, total = 8000, ele = [];
+  for (let k = 0; k <= total / step; k++) { const x = k * step / 1000;
+    ele.push(+(120 + 38 * Math.sin(x * 0.9 - 1.2) + 14 * Math.sin(x * 2.7) + 6 * Math.sin(x * 6.1 + 0.4) + (x > 4.5 && x < 6 ? 30 * Math.sin((x - 4.5) / 1.5 * Math.PI) : 0)).toFixed(1)); }
+  return { id: 'example', example: true, name: 'Example: Rolling 8K', total, step, ele, seg: 200, grad: 1, start: 9 };
+}
+if (!routes) { routes = [exampleRoute()]; saveRoutes(); }
+function parseGPX(text, fname) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('This file isn\'t valid GPX.');
+  let pts = [...doc.getElementsByTagNameNS('*', 'trkpt')]; if (pts.length < 2) pts = [...doc.getElementsByTagNameNS('*', 'rtept')];
+  const P = pts.map(p => { const e = p.getElementsByTagNameNS('*', 'ele')[0]; return { lat: +p.getAttribute('lat'), lon: +p.getAttribute('lon'), e: e ? parseFloat(e.textContent) : NaN }; })
+    .filter(p => isFinite(p.lat) && isFinite(p.lon));
+  if (P.length < 2) throw new Error('No track points found in this file.');
+  if (P.filter(p => isFinite(p.e)).length < P.length / 2) throw new Error('This GPX has no elevation data. Export it again with elevation included.');
+  let last = P.find(p => isFinite(p.e)).e; P.forEach(p => { if (isFinite(p.e)) last = p.e; else p.e = last; });
+  const rad = Math.PI / 180, D = [0]; let d = 0;
+  for (let k = 1; k < P.length; k++) { const a = P[k - 1], b = P[k], dl = (b.lat - a.lat) * rad, dn = (b.lon - a.lon) * rad;
+    const h = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dn / 2) ** 2; d += 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h))); D.push(d); }
+  if (d < 200) throw new Error('This route is shorter than 200 m.');
+  const step = 10, n = Math.floor(d / step) + 1, E = []; let j = 0;
+  for (let k = 0; k < n; k++) { const x = k * step; while (j < D.length - 2 && D[j + 1] < x) j++;
+    const span = D[j + 1] - D[j], t = span > 0 ? Math.min(1, Math.max(0, (x - D[j]) / span)) : 0; E.push(P[j].e + (P[j + 1].e - P[j].e) * t); }
+  const S = E.map((_, k) => { let a = 0, c = 0; for (let q = -3; q <= 3; q++) { const v = E[k + q]; if (v != null) { a += v; c++; } } return +(a / c).toFixed(1); });
+  const nm = doc.getElementsByTagNameNS('*', 'name')[0];
+  const name = (nm && nm.textContent.trim()) || fname.replace(/\.gpx$/i, '');
+  return { id: uid(), name: name.slice(0, 80), total: Math.round(d), step, ele: S, seg: 200, grad: 1, start: 9 };
+}
+const eleAt = (r, x) => { const f = Math.max(0, x) / r.step, k = Math.floor(f), n = r.ele.length; if (k >= n - 1) return r.ele[n - 1]; return r.ele[k] + (r.ele[k + 1] - r.ele[k]) * (f - k); };
+function routeStats(r) { let up = 0, down = 0; for (let k = 1; k < r.ele.length; k++) { const dd = r.ele[k] - r.ele[k - 1]; if (dd > 0) up += dd; else down -= dd; }
+  return { up, down, min: Math.min(...r.ele), max: Math.max(...r.ele) }; }
+function routeSegments(r) {
+  const L = +r.seg || 200, sc = +r.grad || 1, raw = [];
+  for (let x = 0; x < r.total - 1; x += L) { const len = Math.min(L, r.total - x); const g = (eleAt(r, x + len) - eleAt(r, x)) / len * 100; raw.push({ d: len, g, i: clampI(g * sc) }); }
+  if (raw.length > 1 && raw[raw.length - 1].d < L / 3) { const t = raw.pop(), p = raw[raw.length - 1]; p.g = (p.g * p.d + t.g * t.d) / (p.d + t.d); p.d += t.d; }
+  const out = [];
+  raw.forEach(s => { const p = out[out.length - 1]; if (p && p.i === s.i) { p.g = (p.g * p.d + s.g * s.d) / (p.d + s.d); p.d += s.d; } else out.push({ ...s }); });
+  out.forEach(s => s.label = s.g < -1 && s.i <= LIM.iMin ? 'Downhill' : s.i <= 1 ? 'Flat' : s.i >= 8 ? 'Steep climb' : 'Climb');
+  return out;
+}
+function drawRoute(cv, r, segs, opt = {}) {
+  const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h || !r) return;
+  const dpr = window.devicePixelRatio || 1; cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, w, h);
+  const cs = getComputedStyle(document.documentElement), col = n => cs.getPropertyValue(n).trim();
+  const st = routeStats(r), span = Math.max(20, st.max - st.min), lo = st.min - span * 0.1, hi = st.max + span * 0.18;
+  const band = segs ? Math.max(14, h * 0.24) : 0, top = 4, H = h - band - (segs ? 4 : 0), X = m => m / r.total * w, Y = e => top + (1 - (e - lo) / (hi - lo)) * (H - top);
+  const N = Math.min(r.ele.length, Math.max(2, Math.round(w)));
+  c.beginPath(); c.moveTo(0, H);
+  for (let q = 0; q < N; q++) { const m = q / (N - 1) * r.total; c.lineTo(X(m), Y(eleAt(r, m))); }
+  c.lineTo(w, H); c.closePath(); c.fillStyle = col('--terrain-fill'); c.fill();
+  c.beginPath(); for (let q = 0; q < N; q++) { const m = q / (N - 1) * r.total, y = Y(eleAt(r, m)); q ? c.lineTo(X(m), y) : c.moveTo(X(m), y); }
+  c.strokeStyle = col('--terrain'); c.lineWidth = 1.75; c.lineJoin = 'round'; c.stroke();
+  if (segs) { let x = 0; const iMax = Math.max(LIM.iMax, 1); c.fillStyle = col('--incline');
+    segs.forEach(s => { const x0 = X(x), x1 = X(x + s.d), bh = Math.max(1, (s.i - LIM.iMin) / (iMax - LIM.iMin) * band); c.fillRect(x0, h - bh, Math.max(1, x1 - x0 - (x1 - x0 > 3 ? 1 : 0)), bh); x += s.d; }); }
+  if (opt.labels) { c.fillStyle = col('--muted'); c.font = '600 11px ' + col('--font-body'); c.textBaseline = 'top';
+    c.fillText(`${Math.round(st.max)} m`, 4, Math.max(2, Y(st.max) - 14)); c.textBaseline = 'bottom'; c.fillText(`${Math.round(st.min)} m`, 4, H - 2);
+    c.textAlign = 'right'; c.fillText(`${(r.total / 1000).toFixed(1)} km`, w - 4, H - 2); c.textAlign = 'left'; }
+  if (opt.progress != null) { const px = X(Math.min(opt.progress, r.total)); c.fillStyle = col('--veil'); c.fillRect(0, 0, px, h); c.fillStyle = col('--fg'); c.fillRect(px - 1, 0, 2, h); }
+}
+function renderRoutes() {
+  const list = $('#rtList'); list.innerHTML = '';
+  if (!routes.length) list.innerHTML = '<div class="empty">No routes yet. Upload a GPX file above to add one.</div>';
+  routes.forEach(r => { const st = routeStats(r), el = document.createElement('article'); el.className = 'card';
+    el.innerHTML = `${r.example ? '<span class="ex">Example route</span>' : ''}<h3>${esc(r.name)}</h3><canvas></canvas>
+      <div class="meta">${(r.total / 1000).toFixed(2)} km · +${Math.round(st.up)} m / −${Math.round(st.down)} m</div>
+      <div class="row"><button class="primary" data-a="open">${rtSel === r.id ? 'Open' : 'Open'}</button><button data-a="load">Load</button></div>`;
+    el.querySelector('[data-a=open]').onclick = () => { rtSel = r.id; renderRouteDetail(); $('#rtDetail').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    el.querySelector('[data-a=load]').onclick = () => loadRouteRun(r);
+    el._draw = () => drawRoute(el.querySelector('canvas'), r, null); list.appendChild(el); });
+  renderRouteDetail(); requestAnimationFrame(redrawAll);
+}
+function renderRouteDetail() {
+  const r = routes.find(x => x.id === rtSel), box = $('#rtDetail'); box.hidden = !r; if (!r) return;
+  const segs = routeSegments(r), st = routeStats(r), capped = segs.filter(s => s.g * r.grad > LIM.iMax + 0.5).reduce((a, s) => a + s.d, 0),
+    flat = segs.filter(s => s.g * r.grad < LIM.iMin - 0.5).reduce((a, s) => a + s.d, 0), mins = r.total / 1000 / (+r.start || 9) * 60;
+  if (document.activeElement !== $('#rtName')) $('#rtName').value = r.name;
+  $('#rtSeg').value = String(r.seg); $('#rtGrad').value = String(r.grad); $('#rtStart').value = r.start;
+  $('#rtStats').innerHTML = [['Distance', (r.total / 1000).toFixed(2) + ' km'], ['Ascent', '+' + Math.round(st.up) + ' m'], ['Descent', '−' + Math.round(st.down) + ' m'],
+    ['Max incline', Math.max(...segs.map(s => s.i)) + '%'], ['Incline changes', segs.length], ['At ' + r.start + ' km/h', fmt(mins * 60)]]
+    .map(([l, v]) => `<span><span class="label">${l}</span><br><b>${v}</b></span>`).join('');
+  const notes = [];
+  if (flat > 0) notes.push(`Downhills (${(flat / 1000).toFixed(1)} km) run at ${LIM.iMin}% because the treadmill can't decline.`);
+  if (capped > 0) notes.push(`${(capped / 1000).toFixed(1)} km is steeper than ${LIM.iMax}% and is capped there.`);
+  notes.push('The app sets your starting speed once; after that, change speed whenever you like.');
+  $('#rtNote').textContent = notes.join(' ');
+  $('#rtDelWrap').innerHTML = '<button id="rtDelete" class="ghost danger">Delete route</button>';
+  $('#rtDelete').onclick = () => { $('#rtDelWrap').innerHTML = '<span class="confirm">Delete this route? <button class="danger" id="rtDelY">Delete</button><button id="rtDelN">Keep</button></span>';
+    $('#rtDelY').onclick = () => { routes = routes.filter(x => x.id !== r.id); rtSel = null; saveRoutes(); renderRoutes(); toast('Route deleted'); }; $('#rtDelN').onclick = renderRouteDetail; };
+  requestAnimationFrame(() => drawRoute($('#rtChart'), r, segs, { labels: true }));
+}
+const selRoute = () => routes.find(x => x.id === rtSel);
+$('#rtName').addEventListener('change', e => { const r = selRoute(); if (r) { r.name = e.target.value.trim() || r.name; saveRoutes(); renderRoutes(); } });
+$('#rtSeg').onchange = e => { const r = selRoute(); if (r) { r.seg = +e.target.value; saveRoutes(); renderRouteDetail(); } };
+$('#rtGrad').onchange = e => { const r = selRoute(); if (r) { r.grad = +e.target.value; saveRoutes(); renderRouteDetail(); } };
+$('#rtStart').onchange = e => { const r = selRoute(); if (r) { r.start = +clampS(+e.target.value || 9).toFixed(1); saveRoutes(); renderRouteDetail(); } };
+$('#rtLoad').onclick = () => { const r = selRoute(); if (r) loadRouteRun(r); };
+async function addGPX(file) {
+  const msg = $('#rtMsg'); msg.textContent = '';
+  if (!file) return;
+  try { const r = parseGPX(await file.text(), file.name); routes.unshift(r); rtSel = r.id; saveRoutes(); renderRoutes(); toast('Route added'); }
+  catch (e) { msg.textContent = e.message || 'Couldn\'t read that file.'; }
+}
+$('#rtFile').onchange = e => { addGPX(e.target.files[0]); e.target.value = ''; };
+const drop = $('#rtDrop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addGPX(e.dataTransfer.files[0]));
+function loadRouteRun(r) {
+  if (run && ['running', 'paused', 'countdown'].includes(run.state)) { toast('End the current workout first'); show('run'); return; }
+  const segs = routeSegments(r); let acc = 0;
+  const w = { id: 'route-' + r.id, name: r.name, isRoute: true, segments: segs };
+  run = { w, route: true, routeData: r, segs, ends: segs.map(s => acc += s.d), total: acc, elapsed: 0, state: 'ready', segIdx: 0, scale: 1, nS: 0, nI: 0,
+    manualS: +r.start || 9, posOff: 0, last: performance.now(), sent: {}, cue: null, sawMoving: false, zeroSince: null };
+  $('#runEmpty').hidden = true; $('#runBody').hidden = false; $('#rName').textContent = r.name;
+  setMsg(`Starts at ${run.manualS.toFixed(1)} km/h. After that the app only changes the incline, every time you reach a new section.`); renderRun(); show('run');
+}
+
+/* ---------- recording ---------- */
+function record() {
+  const r = run.rec || (run.rec = { samples: [], dist: 0, alt: 0, lastT: null, lastPush: 0, est: !tm, sim: !!(tm && tm.sim) });
+  const now = Date.now(), k = Math.max(0, run.segIdx), tg = target(k), useLive = !!(tm && live.speed != null);
+  const v = useLive ? live.speed : tg.s, i = useLive && live.incline != null ? live.incline : tg.i;
+  if (r.lastT != null) { const m = v / 3.6 * Math.min(2, (now - r.lastT) / 1000); r.dist += m; if (i > 0) r.alt += m * i / 100; }
+  r.lastT = now;
+  if (now - r.lastPush >= 1000) { r.lastPush = now; r.samples.push({ t: now, v: +v.toFixed(2), i: +(+i).toFixed(1), d: +r.dist.toFixed(1), a: +r.alt.toFixed(2), k }); }
+}
+let act = store.get('tm.activity', null);
+function actStats(a) {
+  const S = a.samples, L = S[S.length - 1]; let iw = 0, tw = 0, maxI = 0;
+  for (let k = 1; k < S.length; k++) { const dt = (S[k].t - S[k - 1].t) / 1000; if (dt > 5) continue; iw += S[k].i * dt; tw += dt; maxI = Math.max(maxI, S[k].i); }
+  return { time: tw, km: L.d / 1000, climb: L.a, avgI: tw ? iw / tw : 0, maxI, avgV: tw ? (L.d / 1000) / (tw / 3600) : 0 };
+}
+function describe(a) {
+  const st = actStats(a), groups = new Map();
+  a.segs.forEach(s => { const base = s.label.replace(/\s\d+\/\d+$/, ''), key = `${base}|${s.d}|${s.s}|${s.i}`, g = groups.get(key); g ? g.n++ : groups.set(key, { base, d: s.d, s: s.s, i: s.i, n: 1 }); });
+  const lines = [...groups.values()].map(g => `• ${g.n > 1 ? g.n + ' × ' : ''}${g.base} ${fmt(g.d)} @ ${g.s.toFixed(1)} km/h, ${g.i}%`);
+  return [a.workout === 'Free run' ? 'Treadmill free run' : a.route ? `Treadmill route: ${a.route.name}` : `Treadmill workout: ${a.workout}`,
+    `${st.km.toFixed(2)} km · ${fmt(st.time)} · ${Math.round(st.climb)} m climbed · avg incline ${st.avgI.toFixed(1)}% (max ${st.maxI}%) · avg ${st.avgV.toFixed(1)} km/h`,
+    ...(a.route ? ['', `Route: ${a.route.name} · ${a.route.km.toFixed(2)} km · +${Math.round(a.route.ascent)} m on the real course (incline followed from GPX)`] : []),
+    ...(lines.length ? ['', 'Plan:', ...lines.slice(0, 14), ...(lines.length > 14 ? ['• …'] : [])] : []),
+    ...(a.est ? ['', 'Speed and incline taken from the plan (no treadmill data).'] : []), '', 'Recorded with T-24c Workouts'].join('\n');
+}
+function saveActivity() {
+  const r = run.rec, S = r.samples, w = run.w, maxV = Math.max(...S.map(p => p.v));
+  act = { id: 't24c-' + S[0].t, workout: w.name, name: w.name.replace(/^Couch to 5K · \d+\. /, 'Couch to 5K: '), start: S[0].t, samples: S, est: r.est, sim: r.sim, uploaded: null,
+    type: (w.tag === 'Walking' || w.phase === 'Walking' || run.manual) && maxV < 7.5 ? 'Walk' : 'Run',
+    route: run.route ? { name: run.routeData.name, km: run.total / 1000, ascent: routeStats(run.routeData).up } : null,
+    segs: run.manual || run.route ? [] : run.segs.map(s => ({ label: s.label, d: s.d, s: +clampS(s.s * run.scale).toFixed(1), i: s.i })) };
+  act.desc = describe(act); store.set('tm.activity', act); renderAct();
+}
+function toTCX(a) {
+  const iso = t => new Date(t).toISOString(), laps = [];
+  a.samples.forEach(p => { const l = laps[laps.length - 1]; if (!l || l.k !== p.k) laps.push({ k: p.k, pts: [p] }); else l.pts.push(p); });
+  let prevD = 0;
+  const lapXml = laps.map(l => { const f = l.pts[0], e = l.pts[l.pts.length - 1], dist = e.d - prevD; prevD = e.d;
+    return `<Lap StartTime="${iso(f.t)}"><TotalTimeSeconds>${Math.max(1, Math.round((e.t - f.t) / 1000) + 1)}</TotalTimeSeconds><DistanceMeters>${dist.toFixed(1)}</DistanceMeters>` +
+      `<MaximumSpeed>${(Math.max(...l.pts.map(p => p.v)) / 3.6).toFixed(3)}</MaximumSpeed><Calories>0</Calories><Intensity>Active</Intensity><TriggerMethod>Manual</TriggerMethod><Track>` +
+      l.pts.map(p => `<Trackpoint><Time>${iso(p.t)}</Time><AltitudeMeters>${p.a.toFixed(2)}</AltitudeMeters><DistanceMeters>${p.d.toFixed(1)}</DistanceMeters><Extensions><ns3:TPX><ns3:Speed>${(p.v / 3.6).toFixed(3)}</ns3:Speed></ns3:TPX></Extensions></Trackpoint>`).join('') +
+      `</Track></Lap>`; }).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2"><Activities><Activity Sport="Running"><Id>${iso(a.samples[0].t)}</Id>${lapXml}<Notes>${esc(a.desc)}</Notes></Activity></Activities></TrainingCenterDatabase>`;
+}
+function renderAct() {
+  const box = $('#actBox'); box.hidden = !act; if (!act) return; const st = actStats(act);
+  $('#actHead').textContent = act.sim ? 'Workout recorded (simulator data, for testing)' : act.est ? 'Workout recorded (timer only, figures from the plan)' : 'Workout recorded';
+  $('#actTotals').innerHTML = [['Time', fmt(st.time)], ['Distance', st.km.toFixed(2) + ' km'], ['Climbed', Math.round(st.climb) + ' m'], ['Avg incline', st.avgI.toFixed(1) + '%'], ['Avg speed', st.avgV.toFixed(1) + ' km/h']]
+    .map(([l, v]) => `<span><span class="label">${l}</span><br><b>${v}</b></span>`).join('');
+  $('#actName').value = act.name; $('#actType').value = act.type; $('#actDesc').value = act.desc;
+  const up = $('#actUpload'); up.disabled = !!act.uploaded; up.textContent = act.uploaded ? 'Uploaded' : 'Upload to Strava';
+  $('#actMsg').innerHTML = act.uploaded ? `On Strava: <a href="https://www.strava.com/activities/${act.uploaded}" target="_blank" rel="noopener">view activity</a>` : '';
+}
+function readActForm() { if (!act) return; act.name = $('#actName').value.trim() || act.workout; act.type = $('#actType').value; act.desc = $('#actDesc').value; store.set('tm.activity', act); }
+['actName', 'actType', 'actDesc'].forEach(id => $('#' + id).addEventListener('change', readActForm));
+$('#actTcx').onclick = () => { readActForm(); try {
+  const url = URL.createObjectURL(new Blob([toTCX(act)], { type: 'application/vnd.garmin.tcx+xml' })), a = document.createElement('a');
+  a.href = url; a.download = `${act.name.replace(/[^\w\- ]+/g, '').trim() || 'workout'}.tcx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  $('#actMsg').textContent = 'TCX saved. You can upload it at strava.com/upload/select.'; } catch (e) { $('#actMsg').textContent = 'Downloads are blocked here. Use your own copy of the page.'; } };
+$('#actDiscard').onclick = e => { const b = e.target; if (b.dataset.armed) { act = null; store.set('tm.activity', null); renderAct(); toast('Recording discarded'); return; }
+  b.dataset.armed = 1; b.textContent = 'Tap again to discard'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Discard'; }, 3000); };
+
+/* ---------- Strava ---------- */
+const SV = 'https://www.strava.com';
+const stvCfg = () => store.get('tm.stravaCfg', {}), stvTok = () => store.get('tm.stravaTok', null);
+const redirectUri = () => location.origin + location.pathname;
+function renderStrava() {
+  const t = stvTok(), c = stvCfg(), chip = $('#stvStatus');
+  chip.textContent = t ? `Connected${t.athlete ? ' · ' + t.athlete : ''}` : 'Not connected'; chip.className = 'chip' + (t ? ' ok' : '');
+  $('#stvDomain').textContent = location.hostname || 'localhost'; $('#stvFileWarn').hidden = location.protocol !== 'file:';
+  $('#stvId').value = c.id || ''; $('#stvSecret').value = c.secret || ''; $('#stvDisconnect').hidden = !t;
+  $('#stvConnect').textContent = t ? 'Reconnect' : 'Connect to Strava';
+}
+$('#btnStrava').onclick = () => { $('#stravaPanel').hidden = !$('#stravaPanel').hidden; renderStrava(); };
+$('#stvConnect').onclick = () => {
+  const id = $('#stvId').value.trim(), secret = $('#stvSecret').value.trim();
+  if (!id || !secret) { toast('Enter the Client ID and Client Secret first'); return; }
+  if (location.protocol === 'file:') { toast('Open the page through localhost first'); return; }
+  readActForm(); store.set('tm.stravaCfg', { id, secret });
+  location.href = `${SV}/oauth/authorize?` + new URLSearchParams({ client_id: id, response_type: 'code', redirect_uri: redirectUri(), approval_prompt: 'auto', scope: 'activity:write' });
+};
+$('#stvDisconnect').onclick = async () => { const t = stvTok(); store.set('tm.stravaTok', null);
+  try { if (t) await fetch(`${SV}/oauth/deauthorize`, { method: 'POST', body: new URLSearchParams({ access_token: t.access_token }) }); } catch (e) {}
+  renderStrava(); toast('Strava disconnected'); };
+async function stvTokenPost(params) {
+  const c = stvCfg(), r = await fetch(`${SV}/oauth/token`, { method: 'POST', body: new URLSearchParams({ client_id: c.id, client_secret: c.secret, ...params }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.message || 'Strava sign-in failed'); return j;
+}
+async function stvAccess() {
+  let t = stvTok(); if (!t) return null;
+  if (t.expires_at * 1000 < Date.now() + 60000) { const j = await stvTokenPost({ grant_type: 'refresh_token', refresh_token: t.refresh_token });
+    t = { ...t, access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at }; store.set('tm.stravaTok', t); }
+  return t.access_token;
+}
+$('#actUpload').onclick = async () => {
+  const msg = $('#actMsg'), btn = $('#actUpload'); readActForm();
+  if (!stvTok()) { $('#stravaPanel').hidden = false; renderStrava(); window.scrollTo({ top: 0, behavior: 'smooth' }); msg.textContent = 'Connect Strava first using the panel at the top. This recording is kept until you upload or discard it.'; return; }
+  btn.disabled = true; msg.textContent = 'Uploading…';
+  try {
+    const tok = await stvAccess(), auth = { Authorization: 'Bearer ' + tok }, fd = new FormData();
+    fd.append('file', new Blob([toTCX(act)], { type: 'application/xml' }), 'workout.tcx');
+    fd.append('data_type', 'tcx'); fd.append('name', act.name); fd.append('description', act.desc); fd.append('trainer', '1'); fd.append('external_id', act.id);
+    let r = await fetch(`${SV}/api/v3/uploads`, { method: 'POST', headers: auth, body: fd }), j = await r.json();
+    if (!r.ok) throw new Error(j.message || 'HTTP ' + r.status);
+    for (let n = 0; n < 30 && !j.activity_id && !j.error; n++) { msg.textContent = 'Strava is processing the file…'; await new Promise(res => setTimeout(res, 2000));
+      j = await (await fetch(`${SV}/api/v3/uploads/${j.id}`, { headers: auth })).json(); }
+    if (j.error) throw new Error(j.error);
+    if (!j.activity_id) throw new Error('Strava is still processing it. Check your Strava feed in a minute.');
+    try { await fetch(`${SV}/api/v3/activities/${j.activity_id}`, { method: 'PUT', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ sport_type: act.type, trainer: true, name: act.name, description: act.desc }) }); } catch (e) {}
+    act.uploaded = j.activity_id; store.set('tm.activity', act); renderAct(); toast('Uploaded to Strava');
+  } catch (e) {
+    msg.textContent = e instanceof TypeError ? 'Couldn\'t reach Strava. Uploading works from your own copy of the page (localhost or your https site), not inside the Claude preview. You can also download the TCX file.' : 'Upload failed: ' + (e.message || e);
+  } finally { if (!act || !act.uploaded) btn.disabled = false; }
+};
+async function stravaReturn() {
+  const q = new URLSearchParams(location.search); if (!q.has('code') && !q.has('error')) return false;
+  history.replaceState(null, '', location.pathname);
+  if (q.has('error')) { toast('Strava connection cancelled'); return true; }
+  try { const j = await stvTokenPost({ code: q.get('code'), grant_type: 'authorization_code' });
+    store.set('tm.stravaTok', { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at, athlete: j.athlete ? [j.athlete.firstname, j.athlete.lastname].filter(Boolean).join(' ') : '' });
+    toast((q.get('scope') || '').includes('activity:write') ? 'Strava connected' : 'Connected, but upload permission was not granted. Reconnect and allow it.');
+  } catch (e) { toast('Strava: ' + e.message); }
+  return true;
+}
+
+/* ---------- boot ---------- */
+function redrawAll() { if (!$('#view-routes').hidden) renderRouteDetail(); document.querySelectorAll('.card').forEach(c => c._draw && c._draw()); if (B && !$('#view-build').hidden) updatePreview(); if (run && !$('#view-run').hidden) renderRun(); }
+window.addEventListener('resize', () => { clearTimeout(redrawAll.t); redrawAll.t = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+B = blank(); renderLib(); renderBuilder(); renderC25k(); renderRoutes();
+loadRun(PRESETS.find(p => p.id === 'p-hills')); renderAct(); renderStrava();
+stravaReturn().then(back => { renderStrava(); if (back) { $('#stravaPanel').hidden = false; if (act && !act.uploaded) show('run'); else show('lib'); } else show('lib'); });
+</script>
